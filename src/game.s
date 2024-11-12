@@ -45,13 +45,13 @@ default_palette:
 ;*****************************************************************
 .segment "CODE"
 title_text:
-    .byte "C O O L",0
+    .byte "D I N E S",0
 
 press_play_text:
-    .byte "PRESS A TO BECOME COOL",0
+    .byte "PRESS A TO JUMP",0
 
 cool_text:
-    .byte "YOU ARE NOW COOL",0
+    .byte "GAME",0
 
 title_attributes:
     .byte %00000101,%00000101,%00000101,%00000101
