@@ -58,165 +58,165 @@ title_attributes:
     .byte %00000101,%00000101,%00000101,%00000101
     
 irq:
-    rti
+    RTI
 
 .proc reset
-        sei
-        lda #0
-        sta PPU_CONTROL
-        sta PPU_MASK
-        sta APU_DM_CONTROL
-        lda #$40
-        sta JOYPAD2
-        cld
-        ldx #$FF
-        txs
-        bit PPU_STATUS
+        SEI
+        LDA #0
+        STA PPU_CONTROL
+        STA PPU_MASK
+        STA APU_DM_CONTROL
+        LDA #$40
+        STA JOYPAD2
+        CLD
+        LDX #$FF
+        TXS
+        BIT PPU_STATUS
 
     wait_vblank:
-        bit PPU_STATUS
-        bpl wait_vblank
-        lda #0
-        ldx #0
+        BIT PPU_STATUS
+        BPL wait_vblank
+        LDA #0
+        LDX #0
 
     clear_ram:
-        sta $0000,x
-        sta $0100,x
-        sta $0200,x
-        sta $0300,x
-        sta $0400,x
-        sta $0500,x
-        sta $0600,x
-        sta $0700,x
-        inx
-        bne clear_ram
-        lda #255
-        ldx #0
+        STA $0000,x
+        STA $0100,x
+        STA $0200,x
+        STA $0300,x
+        STA $0400,x
+        STA $0500,x
+        STA $0600,x
+        STA $0700,x
+        INX
+        BNE clear_ram
+        LDA #255
+        LDX #0
 
     clear_oam:
-        sta oam,x
-        inx
-        inx
-        inx
-        inx
-        bne clear_oam
+        STA oam,x
+        INX
+        INX
+        INX
+        INX
+        BNE clear_oam
 
     wait_vblank2:
-        bit PPU_STATUS
-        bpl wait_vblank2
-        lda #%10001000
-        sta PPU_CONTROL
-        jmp main
+        BIT PPU_STATUS
+        BPL wait_vblank2
+        LDA #%10001000
+        STA PPU_CONTROL
+        JMP main
 .endproc
 
 .proc nmi
-    pha
-    txa
-    pha
-    tya
-    pha
-    bit PPU_STATUS
-    lda #>oam
-    sta SPRITE_DMA
+    PHA
+    TXA
+    PHA
+    TYA
+    PHA
+    BIT PPU_STATUS
+    LDA #>oam
+    STA SPRITE_DMA
 
     m_vram_set_address $3F00
-    ldx #0
+    LDX #0
 
     @loop:
-        lda palette, x
-        sta PPU_VRAM_IO
-        inx
-        cpx #32
-        bcc @loop
+        LDA palette, x
+        STA PPU_VRAM_IO
+        INX
+        CPX #32
+        BCC @loop
 
-        lda #0
-        sta PPU_VRAM_ADDRESS1
-        sta PPU_VRAM_ADDRESS1
-        lda ppu_ctl0
-        sta PPU_CONTROL
-        lda ppu_ctl1
-        sta PPU_MASK
+        LDA #0
+        STA PPU_VRAM_ADDRESS1
+        STA PPU_VRAM_ADDRESS1
+        LDA ppu_ctl0
+        STA PPU_CONTROL
+        LDA ppu_ctl1
+        STA PPU_MASK
 
-        ldx #0
-        stx nmi_ready
-        pla
-        tay
-        pla
-        tax
-        pla
-        rti
+        LDX #0
+        STX nmi_ready
+        PLA
+        TAY
+        PLA
+        TAX
+        PLA
+        RTI
 .endproc
 
 .proc main
-    ldx #0
+    LDX #0
     paletteloop:
-        lda default_palette, x
-        sta palette, x
-        inx
-        cpx #32
-        bcc paletteloop
-        jsr display_title_screen
-        lda #VBLANK_NMI|BG_0000|OBJ_1000
-        sta ppu_ctl0
-        lda #BG_ON|OBJ_ON
-        sta ppu_ctl1
-        jsr ppu_update
+        LDA default_palette, x
+        STA palette, x
+        INX
+        CPX #32
+        BCC paletteloop
+        JSR display_title_screen
+        LDA #VBLANK_NMI|BG_0000|OBJ_1000
+        STA ppu_ctl0
+        LDA #BG_ON|OBJ_ON
+        STA ppu_ctl1
+        JSR ppu_update
     titleloop:
-        jsr gamepad_poll
-        lda gamepad
-        and #PAD_A|PAD_B|PAD_START|PAD_SELECT
-        beq titleloop
-        jsr display_cool_screen
+        JSR gamepad_poll
+        LDA gamepad
+        AND #PAD_A|PAD_B|PAD_START|PAD_SELECT
+        BEQ titleloop
+        JSR display_cool_screen
     mainloop:
-        jmp mainloop
+        JMP mainloop
 .endproc
 
 .proc display_title_screen
-        jsr ppu_off
-        jsr clear_nametable
+        JSR ppu_off
+        JSR clear_nametable
 
         m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
         m_assign_16i text_address, title_text
-        jsr write_text
+        JSR write_text
 
         m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
         m_assign_16i text_address, press_play_text
-        jsr write_text
+        JSR write_text
 
         m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the title text to the second palette table
         m_assign_16i paddr, title_attributes
-        ldy #0
+        LDY #0
     loop:
-        lda (paddr),y
-        sta PPU_VRAM_IO
-        iny
-        cpy #8
-        bne loop
-        jsr ppu_update
-        rts
+        LDA (paddr),y
+        STA PPU_VRAM_IO
+        INY
+        CPY #8
+        BNE loop
+        JSR ppu_update
+        RTS
 .endproc
 
 .proc display_cool_screen
-        jsr ppu_off
-        jsr clear_nametable
+        JSR ppu_off
+        JSR clear_nametable
 
         m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
         m_assign_16i text_address, title_text
-        jsr write_text
+        JSR write_text
 
         m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
         m_assign_16i text_address, cool_text
-        jsr write_text
+        JSR write_text
 
         m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) ; Sets the title text to the first palette table
         m_assign_16i paddr, title_attributes
-        ldy #0
+        LDY #0
     loop:
-        lda (paddr),y
-        sta PPU_VRAM_IO
-        iny
-        cpy #8
-        bne loop
-        jsr ppu_update
-        rts
+        LDA (paddr),y
+        STA PPU_VRAM_IO
+        INY
+        CPY #8
+        BNE loop
+        JSR ppu_update
+        RTS
 .endproc

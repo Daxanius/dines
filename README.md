@@ -21,3 +21,7 @@ Press F5 to debug
 - Use UPPER_CASE for "preprocessor" definitions
 - Prefix macros with m_
 - Write a comment above every process / macro stating its purpose and usage
+- Use UPPERCASE for the instructions
+- Use a tab inside a process
+- Use a tab inside a macro
+- Use a tab inside a label (labels within processes are then double tabbed)

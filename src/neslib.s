@@ -72,90 +72,90 @@ text_address: .res 2
 .segment "CODE"
 
 .proc wait_frame ; Waits for the screen to be ready
-    inc nmi_ready
+    INC nmi_ready
 @loop:
-    lda nmi_ready
-    bne @loop
-    rts
+    LDA nmi_ready
+    BNE @loop
+    RTS
 .endproc
 
 .proc ppu_update
-    lda ppu_ctl0
-    ora #VBLANK_NMI
-    sta ppu_ctl0
-    sta PPU_CONTROL
-    lda ppu_ctl1
-    ora #OBJ_ON|BG_ON
-    sta ppu_ctl1
-    jsr wait_frame
-    rts
+    LDA ppu_ctl0
+    ORA #VBLANK_NMI
+    STA ppu_ctl0
+    STA PPU_CONTROL
+    LDA ppu_ctl1
+    ORA #OBJ_ON|BG_ON
+    STA ppu_ctl1
+    JSR wait_frame
+    RTS
 .endproc
 
 .proc ppu_off
-    jsr wait_frame
-    lda ppu_ctl0
-    and #%01111111
-    sta ppu_ctl0
-    sta PPU_CONTROL
-    lda ppu_ctl1
-    and #%11100001
-    sta ppu_ctl1
-    sta PPU_MASK
-    rts
+    JSR wait_frame
+    LDA ppu_ctl0
+    AND #%01111111
+    STA ppu_ctl0
+    STA PPU_CONTROL
+    LDA ppu_ctl1
+    AND #%11100001
+    STA ppu_ctl1
+    STA PPU_MASK
+    RTS
 .endproc
 
 .proc clear_nametable
-        lda PPU_STATUS
-        lda #$20
-        sta PPU_VRAM_ADDRESS2
-        lda #$00
-        sta PPU_VRAM_ADDRESS2
+        LDA PPU_STATUS
+        LDA #$20
+        STA PPU_VRAM_ADDRESS2
+        LDA #$00
+        STA PPU_VRAM_ADDRESS2
 
-        lda #0
-        ldy #30
+        LDA #0
+        LDY #30
     rowloop:
-        ldx #32
+        LDX #32
         columnloop:
-            sta PPU_VRAM_IO
-            dex
-            bne columnloop
-            dey
-            bne rowloop
-            ldx #64
+            STA PPU_VRAM_IO
+            DEX
+            BNE columnloop
+            DEY
+            BNE rowloop
+            LDX #64
     loop:
-        sta PPU_VRAM_IO
-        dex
-        bne loop
-        rts
+        STA PPU_VRAM_IO
+        DEX
+        BNE loop
+        RTS
 .endproc
 
 .proc gamepad_poll
-        lda #1
-        sta JOYPAD1
-        lda #0
-        sta JOYPAD1
-        ldx #8
+        LDA #1
+        STA JOYPAD1
+        LDA #0
+        STA JOYPAD1
+        LDX #8
     loop:
-        pha
-        lda JOYPAD1
-        and #%00000011
-        cmp #%00000001
-        pla
-        ror
-        dex
-        bne loop
-        sta gamepad
-        rts
+        PHA
+        LDA JOYPAD1
+        AND #%00000011
+        CMP #%00000001
+        PLA
+        ROR
+        DEX
+        BNE loop
+        STA gamepad
+        RTS
 .endproc
 
 .proc write_text
-    ldy #0
+    LDY #0
     loop:
-        lda (text_address),y
-        beq exit
-        sta PPU_VRAM_IO
-        iny
-        jmp loop
+        LDA (text_address),y
+        BEQ exit
+        STA PPU_VRAM_IO
+        INY
+        JMP loop
     exit:
-        rts
+        RTS
 .endproc
