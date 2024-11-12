@@ -1,2 +1,2 @@
-# dines
- The Google dinosaur game ported to the NES
+# Dines
+The Google dinosaur game ported to the NES
