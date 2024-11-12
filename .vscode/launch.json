@@ -8,7 +8,8 @@
             "romPath": "${workspaceFolder}/build/game.nes",
             "dbgPath": "${workspaceFolder}/build/game.dbg",
             "program": "mesen",
-            "sourcePath": "${workspaceFolder}/src",
+            "sourcePath": "${workspaceFolder}",
+            "preLaunchTask": "Build",
             "stopOnEntry": true,
             "resetOnEntry": true
         }
