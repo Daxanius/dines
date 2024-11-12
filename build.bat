@@ -5,7 +5,7 @@ mkdir build
 
 @echo.
 @echo Compiling...
-ca65 game.s -g -o build/game.o
+ca65 src/game.s -g -o build/game.o
 @IF ERRORLEVEL 1 GOTO failure
 
 @echo.
