@@ -119,7 +119,7 @@ irq:
     lda #>oam
     sta SPRITE_DMA
 
-    vram_set_address $3F00
+    m_vram_set_address $3F00
     ldx #0
 
     @loop:
@@ -175,16 +175,16 @@ irq:
         jsr ppu_off
         jsr clear_nametable
 
-        vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
-        assign_16i text_address, title_text
+        m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
+        m_assign_16i text_address, title_text
         jsr write_text
 
-        vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
-        assign_16i text_address, press_play_text
+        m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
+        m_assign_16i text_address, press_play_text
         jsr write_text
 
-        vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the title text to the second palette table
-        assign_16i paddr, title_attributes
+        m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the title text to the second palette table
+        m_assign_16i paddr, title_attributes
         ldy #0
     loop:
         lda (paddr),y
@@ -200,16 +200,16 @@ irq:
         jsr ppu_off
         jsr clear_nametable
 
-        vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
-        assign_16i text_address, title_text
+        m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
+        m_assign_16i text_address, title_text
         jsr write_text
 
-        vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
-        assign_16i text_address, cool_text
+        m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
+        m_assign_16i text_address, cool_text
         jsr write_text
 
-        vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) ; Sets the title text to the first palette table
-        assign_16i paddr, title_attributes
+        m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) ; Sets the title text to the first palette table
+        m_assign_16i paddr, title_attributes
         ldy #0
     loop:
         lda (paddr),y
