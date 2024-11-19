@@ -5,13 +5,13 @@
 ; Define PPU Registers
 PPU_CONTROL = $2000
 PPU_MASK = $2001
-PPU_STATUS = $2002
+PPU_STATUS = $2002         ; Current status of the PPU https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS
 PPU_SPRRAM_ADDRESS = $2003
 PPU_SPRRAM_IO = $2004
-PPU_VRAM_ADDRESS1 = $2005
-PPU_VRAM_ADDRESS2 = $2006
-PPU_VRAM_IO = $2007
-SPRITE_DMA = $4014
+PPU_SCROLL_ADDRESS = $2005 ; The PPU scroll adress
+PPU_VRAM_ADDRESS = $2006  ; The PPU VRam set address
+PPU_VRAM_IO = $2007       ; VRAM Data, accessing this register increments the VRAM, data can be reat to the PPU with this https://www.nesdev.org/wiki/PPU_registers#PPUDATA
+SPRITE_DMA = $4014        ; A register that suspends the CPU and quickly copies 256 bytes of data to the PPU OAM https://www.nesdev.org/wiki/PPU_registers#OAMDMA_-_Sprite_DMA_($4014_write)
 
 ; Control register masks for the PPU
 NT_2000 = $00
@@ -60,8 +60,8 @@ ATTRIBUTE_TABLE_1_ADDRESS = $27C0
 
 nmi_ready: .res 1
 
-ppu_ctl0: .res 1
-ppu_ctl1: .res 1
+ppu_ctl: .res 1
+ppu_mask: .res 1
 
 gamepad: .res 1
 
@@ -71,35 +71,35 @@ text_address: .res 2
 
 .segment "CODE"
 
-.proc wait_frame ; Waits for the screen to be ready
-    INC nmi_ready
+.proc wait_frame    ; Waits until the nmi interrupt has been called, allowing us to update the PPU
+    INC nmi_ready   ; Increments nmi ready so that we can wait for a frame
 @loop:
-    LDA nmi_ready
+    LDA nmi_ready   ; Check the status of the screen
     BNE @loop
     RTS
 .endproc
 
 .proc ppu_update
-    LDA ppu_ctl0
+    LDA ppu_ctl
     ORA #VBLANK_NMI
-    STA ppu_ctl0
+    STA ppu_ctl
     STA PPU_CONTROL
-    LDA ppu_ctl1
+    LDA ppu_mask
     ORA #OBJ_ON|BG_ON
-    STA ppu_ctl1
+    STA ppu_mask
     JSR wait_frame
     RTS
 .endproc
 
 .proc ppu_off
     JSR wait_frame
-    LDA ppu_ctl0
+    LDA ppu_ctl
     AND #%01111111
-    STA ppu_ctl0
+    STA ppu_ctl
     STA PPU_CONTROL
-    LDA ppu_ctl1
+    LDA ppu_mask
     AND #%11100001
-    STA ppu_ctl1
+    STA ppu_mask
     STA PPU_MASK
     RTS
 .endproc
@@ -107,9 +107,9 @@ text_address: .res 2
 .proc clear_nametable
         LDA PPU_STATUS
         LDA #$20
-        STA PPU_VRAM_ADDRESS2
+        STA PPU_VRAM_ADDRESS
         LDA #$00
-        STA PPU_VRAM_ADDRESS2
+        STA PPU_VRAM_ADDRESS
 
         LDA #0
         LDY #30

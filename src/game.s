@@ -13,9 +13,9 @@ INES_SRAM = 0 ; Battery backed sram
 .segment "TILES"
 .incbin "game.chr" ; Import the background and sprite character sets
 
-.segment "VECTORS"
-.word nmi
-.word reset
+.segment "VECTORS" ; The part that has all the interrupt handlers
+.word handle_vblank
+.word handle_reset
 .word irq
 
 .segment "ZEROPAGE" ; Variables
@@ -54,34 +54,41 @@ press_play_text:
 cool_text:
     .byte "GAME",0
 
-title_attributes:
+title_colors:
     .byte %00000101,%00000101,%00000101,%00000101
     .byte %00000101,%00000101,%00000101,%00000101
     
 irq:
     RTI
 
-.proc reset
-        SEI
-        LDA #0
-        STA PPU_CONTROL
-        STA PPU_MASK
-        STA APU_DM_CONTROL
-        LDA #$40
-        STA JOYPAD2
-        CLD
-        LDX #$FF
-        TXS
-        BIT PPU_STATUS
+; First code that runs the NES boots or the reset interrupt is called
+.proc handle_reset
+    SEI             ; Disable interupts
+    LDA #0          ; Set a ti 0
+    STA PPU_CONTROL ; Store 0 to PPU to reset it
+    STA PPU_MASK    ; Reset the PPU MASK
+    STA APU_DM_CONTROL ; Reset APU control
 
+    LDA #$40        ; Store 40 to reset the joypad
+    STA JOYPAD2     ; Reset the joypad
+    CLD             ; Clear double mode
+
+    LDX #$FF        ; Store FF into X, which is the start of the downward growing stack
+    TXS             ; Set the stack pointer to its start by moving X into SP
+
+    BIT PPU_STATUS ; Reset the PPU status
+
+    ; Wait for the vblank before we can start resetting everything
     wait_vblank:
-        BIT PPU_STATUS
-        BPL wait_vblank
-        LDA #0
-        LDX #0
+        BIT PPU_STATUS  ; Get the PPU w register
+        BPL wait_vblank ; Jump to wait for the VBlank
 
+    LDA #0          ; Set the A register to 0
+    LDX #0          ; Set the X register to 0
+
+    ; Clear the RAM memory by looping and repetitively incrementing X going through the entire RAM
     clear_ram:
-        STA $0000,x
+        STA $0000,x 
         STA $0100,x
         STA $0200,x
         STA $0300,x
@@ -91,9 +98,12 @@ irq:
         STA $0700,x
         INX
         BNE clear_ram
-        LDA #255
-        LDX #0
 
+    ; Reset x and A
+    LDA #255
+    LDX #0
+
+    ; Clears the OAM by looping through the addresses of X
     clear_oam:
         STA oam,x
         INX
@@ -102,122 +112,152 @@ irq:
         INX
         BNE clear_oam
 
+    ; Wait for the VBlank again before we can start changing PPU settingss
     wait_vblank2:
         BIT PPU_STATUS
         BPL wait_vblank2
-        LDA #%10001000
-        STA PPU_CONTROL
-        JMP main
+
+    LDA #%10001000  ; PPU Control settings, can be found https://www.nesdev.org/wiki/PPU_registers#PPUCTRL
+    STA PPU_CONTROL ; Store A in PPU control, applying our settings
+
+    JMP main ; Finally, start the main part of our program
 .endproc
 
-.proc nmi
-    PHA
-    TXA
-    PHA
-    TYA
-    PHA
-    BIT PPU_STATUS
-    LDA #>oam
-    STA SPRITE_DMA
+; Handles the VBlank interrupt, all CPU PPU variables will be written to the PPU here
+.proc handle_vblank 
+    PHA             ; Push A to the stack
+    TXA             ; Move x to a
+    PHA             ; Push a to the stack, x is now on the stack
+    TYA             ; Move y to a
+    PHA             ; Push a to the stack, y, and thus all registers are now stored on the stack
 
-    m_vram_set_address $3F00
-    LDX #0
+    BIT PPU_STATUS  ; Clear the PPU w register without modifying A
 
+    LDA #>oam       ; Store the CPU OAM data adress into A
+    STA SPRITE_DMA  ; Tell the CPU to copy the OAM data to the PPU
+
+    m_vram_set_address $3F00 ; Set the PPU Vram addreesss to the start of the palette index https://www.nesdev.org/wiki/PPU_memory_map
+
+    LDX #0 ; Reset x to use for looping
+
+    ; Start storing the palette into the PPU byte by byte
     @loop:
-        LDA palette, x
-        STA PPU_VRAM_IO
-        INX
-        CPX #32
-        BCC @loop
+        LDA palette, x  ; Get part of the palette indexed by X
+        STA PPU_VRAM_IO ; Send it to the PPU
+        INX             ; Increment X
+        CPX #32         ; Check if X has not hit 32 yet
+        BCC @loop       ; Continue looping as long as we haven't gone through the palette yet
 
-        LDA #0
-        STA PPU_VRAM_ADDRESS1
-        STA PPU_VRAM_ADDRESS1
-        LDA ppu_ctl0
-        STA PPU_CONTROL
-        LDA ppu_ctl1
-        STA PPU_MASK
+    LDA #0                  ; Reset A
 
-        LDX #0
-        STX nmi_ready
-        PLA
-        TAY
-        PLA
-        TAX
-        PLA
-        RTI
+    STA PPU_SCROLL_ADDRESS   ; Reset the scroll address on th X axis
+    STA PPU_SCROLL_ADDRESS   ; Reset the scroll adress on the Y axis
+
+    LDA ppu_ctl              ; Get the PPU control settings
+    STA PPU_CONTROL          ; Send the PPU control settings to the PPU
+
+    LDA ppu_mask             ; Get PPU_MASK info
+    STA PPU_MASK             ; Send the mask to the PPU
+
+    LDX #0        ; Reset X
+    STX nmi_ready ; Reset nmi_ready, resulting in the game to move on after the frame according to wait_frame
+
+    ; Put all previous register values back into their respective registers
+    PLA ; Pop Y from the stack into A
+    TAY ; Store Y from A back into Y
+    PLA ; Get X from the stack into A
+    TAX ; Store X from A back into X
+    PLA ; Get A from the stack
+    RTI ; Return from the interuupt
 .endproc
 
 .proc main
-    LDX #0
+    LDX #0 ; Reset X for the loop
+     
+    ; Store the default palette into the palette area which will be put in the PPU on a vblank interrupt
     paletteloop:
-        LDA default_palette, x
-        STA palette, x
-        INX
-        CPX #32
-        BCC paletteloop
-        JSR display_title_screen
-        LDA #VBLANK_NMI|BG_0000|OBJ_1000
-        STA ppu_ctl0
-        LDA #BG_ON|OBJ_ON
-        STA ppu_ctl1
-        JSR ppu_update
+        LDA default_palette, x ; Loop through the default palette
+        STA palette, x         ; Store the default palette value into palette
+        INX                    ; Increment x
+        CPX #32                ; Check if we aren't at the end of the palette
+        BCC paletteloop        ; Keeping copying over palette bytes if we aren't done yet
+
+    JSR display_title_screen   ; Display the title screen
+
+    LDA #VBLANK_NMI|BG_0000|OBJ_1000 ; Combine some PPU control settings into a composite byte 
+    STA ppu_ctl                      ; Store the settings into PPU CTL
+
+    LDA #BG_ON|OBJ_ON                ; Combine PPU mask settings into a composite byte
+    STA ppu_mask                     ; Store the PPU mask settings
+    JSR ppu_update                   ; Update the PPU
+
+    ; The title loop simply keeps looping until any input
     titleloop:
-        JSR gamepad_poll
-        LDA gamepad
-        AND #PAD_A|PAD_B|PAD_START|PAD_SELECT
-        BEQ titleloop
-        JSR display_cool_screen
-    mainloop:
-        JMP mainloop
+        JSR gamepad_poll             ; Fetch the user input
+        LDA gamepad                  ; Put the user input into A
+        AND #PAD_A|PAD_B|PAD_START|PAD_SELECT ; And it with all the composite buttons we want to listen to, any will do for the title
+        BEQ titleloop                         ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
+    
+    JSR display_game_screen ; Finally display the game screen after we are done with the title
+
+    ; The main game loop
+    mainloop: 
+        JMP mainloop ; Loop lol
 .endproc
 
 .proc display_title_screen
-        JSR ppu_off
-        JSR clear_nametable
+    JSR ppu_off            ; Disable the PPU
+    JSR clear_nametable    ; Clear the background
 
-        m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
-        m_assign_16i text_address, title_text
-        JSR write_text
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
+    m_assign_16i text_address, title_text                  ; Write our title to text address
+    JSR write_text                                         ; Writes the text in text_address to the nametable
 
-        m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
-        m_assign_16i text_address, press_play_text
-        JSR write_text
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
+    m_assign_16i text_address, press_play_text              ; Write our ppress play text to text address
+    JSR write_text                                          ; Writes the text in text_address to the nametable
 
-        m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the title text to the second palette table
-        m_assign_16i paddr, title_attributes
-        LDY #0
+    m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the vram address to the start of the attribute table
+    m_assign_16i paddr, title_colors                   ; Moves title_colors into paddr
+
+    LDY #0 ; Reset y to use for writing the colors to the PPU
+
+    ; Writes paddr to the attribute table of the first nametable
     loop:
         LDA (paddr),y
         STA PPU_VRAM_IO
         INY
-        CPY #8
+        CPY #8    ; We can only put 8 colors into the attribute table
         BNE loop
-        JSR ppu_update
-        RTS
+
+    JSR ppu_update ; Update the PPU
+    RTS
 .endproc
 
-.proc display_cool_screen
-        JSR ppu_off
-        JSR clear_nametable
+.proc display_game_screen
+    JSR ppu_off
+    JSR clear_nametable
 
-        m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
-        m_assign_16i text_address, title_text
-        JSR write_text
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
+    m_assign_16i text_address, title_text
+    JSR write_text
 
-        m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
-        m_assign_16i text_address, cool_text
-        JSR write_text
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
+    m_assign_16i text_address, cool_text
+    JSR write_text
 
-        m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) ; Sets the title text to the first palette table
-        m_assign_16i paddr, title_attributes
-        LDY #0
+    m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) ; Sets the title text to the first palette table
+    m_assign_16i paddr, title_colors
+
+    LDY #0
+
     loop:
         LDA (paddr),y
         STA PPU_VRAM_IO
         INY
         CPY #8
         BNE loop
-        JSR ppu_update
-        RTS
+
+    JSR ppu_update
+    RTS
 .endproc
