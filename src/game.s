@@ -25,6 +25,7 @@ paddr: .res 2
 oam: .res 256 ; Sprite OAM data
 
 .include "neslib.s"
+.include "dinolib.s"
 
 .segment "BSS"
 palette: .res 32 ; Current palette buffer
