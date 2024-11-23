@@ -206,7 +206,7 @@ divide_loop:
     JMP divide_loop       ; Repeat until remainder < divisor
 
 done_divide:
-    TXA                   ; Store the quotient in A
     TAY                   ; Move the remainder from A to Y
+    TXA                   ; Store the quotient in A
     RTS                   ; Return with result
 .endproc
