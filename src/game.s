@@ -105,11 +105,13 @@ irq:
 
     ; Clears the OAM by looping through the addresses of X
     clear_oam:
-        STA oam,x
-        INX
-        INX
-        INX
-        INX
+        STA oam,x   ; Stores the current value of A into the oam
+
+        ; Skipping bytes
+        INX         ; Byte 1 of an object
+        INX         ; Byte 2 of an object
+        INX         ; Byte 3 of an object
+        INX         ; Byte 4 of an object
         BNE clear_oam
 
     ; Wait for the VBlank again before we can start changing PPU settingss
@@ -182,14 +184,18 @@ irq:
         CPX #32                ; Check if we aren't at the end of the palette
         BCC paletteloop        ; Keeping copying over palette bytes if we aren't done yet
 
+    JSR dino_start          ; Jump to the setup function for the main game
     JSR display_title_screen   ; Display the title screen
 
-    LDA #VBLANK_NMI|BG_0000|OBJ_1000 ; Combine some PPU control settings into a composite byte 
-    STA ppu_ctl                      ; Store the settings into PPU CTL
+    ; These settings were getting in the way.. I don't even know what  they were supposed to do
+    ; Thanks for being very clear book... Commenting them out fixed dino drawing
+    ; Someone please figure this out for me
+    ;LDA #VBLANK_NMI|BG_0000|OBJ_1000 ; Combine some PPU control settings into a composite byte 
+    ; STA ppu_ctl                      ; Store the settings into PPU CTL
 
-    LDA #BG_ON|OBJ_ON                ; Combine PPU mask settings into a composite byte
-    STA ppu_mask                     ; Store the PPU mask settings
-    JSR ppu_update                   ; Update the PPU
+    ;LDA #BG_ON|OBJ_ON                ; Combine PPU mask settings into a composite byte
+    ; STA ppu_mask                     ; Store the PPU mask settings
+    ; JSR ppu_update                   ; Update the PPU
 
     ; The title loop simply keeps looping until any input
     titleloop:
@@ -206,13 +212,14 @@ irq:
         ; Skip looping if the previous frame has not been drawn
         LDA nmi_ready ; Grab the NMI status
         CMP #0        ; Check if it's done rendering the last frame
-        BNE mainloop  ; Jump back to the start to wait until the next frame has been drawn
+        BNE mainloop  ; Jump back to the start to wait until the frame has been drawn
 
+        JSR gamepad_poll ; Fetch the user input
         JSR dino_update ; Jumps to the main dines updating loop
 
         ; Ensure our changes are rendered
         LDA #1        ; Store true in A
-        STA nmi_ready ; Tell the interrupt that we are ready to render a new frame
+        STA nmi_ready ; Make sure when we loop again, we wait until the VBlank interrupt is called before moving on
         JMP mainloop  ; Loop lol
 .endproc
 
@@ -240,6 +247,8 @@ irq:
         INY
         CPY #8    ; We can only put 8 colors into the attribute table
         BNE loop
+
+    JSR draw_dino   ; Draw the dinosaur on the start screen
 
     JSR ppu_update ; Update the PPU
     RTS
