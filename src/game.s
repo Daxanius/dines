@@ -184,7 +184,7 @@ irq:
         CPX #32                ; Check if we aren't at the end of the palette
         BCC paletteloop        ; Keeping copying over palette bytes if we aren't done yet
 
-    JSR dino_start          ; Jump to the setup function for the main game
+    JSR dino_start             ; Jump to the setup function for the main game
     JSR display_title_screen   ; Display the title screen
 
     ; These settings were getting in the way.. I don't even know what  they were supposed to do
@@ -199,13 +199,14 @@ irq:
 
     ; The title loop simply keeps looping until any input
     titleloop:
+        m_inc_16_i seed  ; Increment the seed while the user is in the titlescreen, gives a lil pseudo random seed
         JSR gamepad_poll ; Fetch the user input
         LDA gamepad      ; Put the user input into A
-        m_inc_16_i seed  ; Increment the seed while the user is in the titlescreen, gives a lil pseudo random seed
         AND #PAD_A       ; Listen only for the A button
         BEQ titleloop    ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
     
     JSR display_game_screen ; Finally display the game screen after we are done with the title
+    JSR dino_start             ; Jump to the setup function for the main game
 
     ; The main game loop
     mainloop:

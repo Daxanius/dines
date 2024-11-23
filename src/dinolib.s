@@ -19,6 +19,8 @@ DINO_CROUCH = 1
 DINO_JUMP = 2
 DINO_DEAD = 4
 DINO_LEG_VARIANT = 8
+DINO_TOUCHED_CEILING = 16
+DINO_ON_GROUND = 32
 
 ; Dino texture parts
 DINO_BACK = 1
@@ -29,16 +31,21 @@ DINO_LEGS2 = 7
 DINO_HEAD_DEAD = 10
 
 DINO_POS_X = 50
-DINO_POS_Y = 180 ; This value will also be used as the lowest possible value for the dino
+FLOOR_HEIGHT = 180 ; This value will also be used as the lowest possible value for the dino
+JUMP_FORCE = 6
+CEILING_HEIGHT = 10  ; The maximum height the dino can jump
 
 .segment "CODE"
 
 .proc dino_start
-	LDA #DINO_POS_Y	 ; The starting Y value for the DINO
-	STA dino_py      ; Store the y value in py
+	LDA #FLOOR_HEIGHT ; The starting Y value for the DINO
+	STA dino_py       ; Store the y value in py
+
 	LDA #0	         ; Zero to reset the OAM index
 	STA oam_idx      ; Reset the oam index, I'm pretty sure the PPU has something for this..
 	STA dino_state   ; Reset the dino state
+	STA game_ticks	 ; Reset game_ticks
+
 	RTS
 .endproc
 
@@ -47,8 +54,12 @@ DINO_POS_Y = 180 ; This value will also be used as the lowest possible value for
 	LDA #0	         ; Zero to reset the OAM index
 	STA oam_idx      ; Reset the oam index, I'm pretty sure the PPU has something for this..
 
+	JSR dino_physics ; Handle dino physics
+	JSR dino_input   ; Handle user input
+
 	LDA game_ticks  ; Get current game ticks
-	CMP #50 	    ; Every 50 ticks or about every second
+	
+	CMP #20 	    ; 50 ticks is about equal to a second
 	BNE skip_change_legs ; Jump to not change legs
 
 	LDA dino_state 		 ; Get the current dino state
@@ -61,7 +72,73 @@ DINO_POS_Y = 180 ; This value will also be used as the lowest possible value for
 skip_change_legs:
 	JSR draw_dino
 
-	m_inc_16_i game_ticks ; Increment the game ticks
+	CLC
+	INC game_ticks ; Increment the game ticks
+	RTS
+.endproc
+
+; Handles dino input
+.proc dino_input
+    LDA gamepad    ; Put the user input into A
+    AND #PAD_A     ; Listen only for the A button
+    BEQ continue   ; Continue if no input was pressed
+
+    ; Check if the dino has not touched the ceiling yet
+    LDA dino_state           ; Get the state
+    AND #DINO_TOUCHED_CEILING ; Get only the touched ceiling bit
+    CMP #0                   ; If it's 0 we can move on
+	BNE continue             ; Continue if we touched the ceiling
+
+    ; Apply jump force
+    LDA #JUMP_FORCE
+    STA dino_vy
+
+continue:
+	RTS
+.endproc
+
+; Handles dino physics
+.proc dino_physics
+	LDA dino_py	; Get the Y position
+
+    ; Check for the ceiling, it is only used to disallow the user from jumping, not to bump against it
+    CMP #CEILING_HEIGHT
+    BMI update_position ; If we did not touch the ceiling, update state
+
+    LDA dino_state           ; Get the state
+    ORA DINO_TOUCHED_CEILING ; Set the touched ceiling flag
+    STA dino_state           ; Update the state
+
+update_position:
+	LDA dino_py		  ; Get the position of the dino
+	CLC 		      ; Clear the carry before applying velocity
+	SBC dino_vy       ; Apply the y velocity
+	CMP #FLOOR_HEIGHT ; Check if the position is not underneath the y position
+	BPL reset_vel 	  ; Go to reset velocity if the position is underneath the base position
+	BEQ reset_vel     ; Also go to reset when it is equal to the floor height
+
+	STA dino_py  ; Store the position
+	
+	LDA dino_vy ; Fetch the velocity
+	DEC dino_vy ; Decrement the velocity (gravity)
+
+   	LDA dino_state
+    AND #%11011111  ; Clear the DINO_ON_GROUND bit
+    STA dino_state  ; Store back the updated state
+
+	RTS
+reset_vel:
+	LDA #0		; Set A to 0
+	STA dino_vy ; Reset the y velocity of the dino
+
+	LDA #FLOOR_HEIGHT+1	; Get the floor height
+	STA dino_py			; Reset the position to the floor height
+
+	LDA dino_state 		; Fetch the dino state to update
+	ORA DINO_ON_GROUND  ; The dino is on the ground
+	AND #%11101111      ; Clear the DINO_TOUCHED_CEILING bit
+    STA dino_state      ; Store back the updated state
+
 	RTS
 .endproc
 
