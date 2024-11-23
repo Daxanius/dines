@@ -193,10 +193,11 @@ irq:
 
     ; The title loop simply keeps looping until any input
     titleloop:
-        JSR gamepad_poll             ; Fetch the user input
-        LDA gamepad                  ; Put the user input into A
-        AND #PAD_A|PAD_B|PAD_START|PAD_SELECT ; And it with all the composite buttons we want to listen to, any will do for the title
-        BEQ titleloop                         ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
+        JSR gamepad_poll ; Fetch the user input
+        LDA gamepad      ; Put the user input into A
+        m_inc_16_i seed  ; Increment the seed while the user is in the titlescreen, gives a lil pseudo random seed
+        AND #PAD_A       ; Listen only for the A button
+        BEQ titleloop    ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
     
     JSR display_game_screen ; Finally display the game screen after we are done with the title
 

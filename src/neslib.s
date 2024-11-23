@@ -104,58 +104,68 @@ text_address: .res 2
     RTS
 .endproc
 
+; Clears the background (nametable + attribute table)
 .proc clear_nametable
-        LDA PPU_STATUS
-        LDA #$20
-        STA PPU_VRAM_ADDRESS
-        LDA #$00
-        STA PPU_VRAM_ADDRESS
+        LDA PPU_STATUS  ; Resets the PPU w latch
 
-        LDA #0
-        LDY #30
+        ; Starting at PPU ADDRESS 2000 we will start resetting everything
+        LDA #$20             ; Stores 20 into a, which will be set as the VRAM address
+        STA PPU_VRAM_ADDRESS ; Store 20 into the PPU VRAM address
+
+        LDA #$00             ; Set a to 00
+        STA PPU_VRAM_ADDRESS ; Store 00 into the PPU VRAM address
+
+        LDA #0  ; Set a to 0, which will be used to set the PPU nametable value to 0
+        LDY #30 ; Rows
     rowloop:
-        LDX #32
+        LDX #32 ; Columns
         columnloop:
-            STA PPU_VRAM_IO
-            DEX
-            BNE columnloop
-            DEY
-            BNE rowloop
-            LDX #64
+            STA PPU_VRAM_IO ; Store A in the current PPU Vram slot
+            DEX             ; Decrement the column index
+            BNE columnloop  ; Jump back to columnloop if we aren't done yet
+            DEY             ; Decrement the row index
+            BNE rowloop     ; Jump back to row loop if there's rows left
+    
+    LDX #64 ; Clear the attribute table containing 64 elements
     loop:
-        STA PPU_VRAM_IO
-        DEX
-        BNE loop
-        RTS
+        STA PPU_VRAM_IO ; Store A into the attribute table address
+        DEX             ; Decrement the index
+        BNE loop        ; Continue looping through the attribute table if we aren't done yet
+
+    RTS
 .endproc
 
+; Fetches the gamepad state bit by bit
 .proc gamepad_poll
-        LDA #1
-        STA JOYPAD1
-        LDA #0
-        STA JOYPAD1
-        LDX #8
+        LDA #1      ; Set the listen bit to 1
+        STA JOYPAD1 ; Send a to the first joypad, indicating that we are listening
+        LDA #0      ; Stop the polling
+        STA JOYPAD1 ; Send the stop request to the joypay
+        LDX #8      ; Since a byte is 8 bits, we only need to loop 8 times
     loop:
-        PHA
-        LDA JOYPAD1
-        AND #%00000011
-        CMP #%00000001
-        PLA
-        ROR
-        DEX
-        BNE loop
-        STA gamepad
-        RTS
+        PHA         ; Store A which holds the current in progress joypad byte
+        LDA JOYPAD1 ; Get the next joypad bit 
+        AND #%00000011 ; Only use the relevant bits the joypad sent
+        CMP #%00000001 ; Move the joypad button bit into the status
+        PLA            ; Get a from the stack
+        ROR            ; Rotate the joypad value into A from the status
+        DEX            ; Decrement X for the loop
+        BNE loop       ; Continue looping until all 8 bits are read
+
+    STA gamepad        ; Store a into the gamepad value
+    RTS                ; Return from the subroutine
 .endproc
 
+; Writes text stored in text_address to the PPU VRam until a null terminator is encountered
+; This function assumes the PPU Vram address pointer is set to a valid OAM or nametable address
 .proc write_text
-    LDY #0
+    LDY #0  ; The index of the loop used to index characters
     loop:
-        LDA (text_address),y
-        BEQ exit
-        STA PPU_VRAM_IO
-        INY
-        JMP loop
-    exit:
+        LDA (text_address),y ; Store the current letter with offset y into a
+        BEQ exit             ; If we encountered 0, which is the null terminator, return from the loop
+        STA PPU_VRAM_IO      ; Store the character into the PPU vram
+        INY                  ; Increment the indexing
+        JMP loop             ; Loop again (no null terminator encountered yet)
+    exit:                    ; Just an exit label to make exiting early from the loop easy
         RTS
 .endproc
