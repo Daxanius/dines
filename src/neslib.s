@@ -74,7 +74,7 @@ ppu_mask: .res 1
 
 gamepad: .res 1
 
-text_address: .res 2
+operation_address: .res 2 ; The address used for multiple functions such as for text drawing, multiplication and division
 
 .include "macros.s"
 
@@ -165,16 +165,48 @@ text_address: .res 2
     RTS                ; Return from the subroutine
 .endproc
 
-; Writes text stored in text_address to the PPU VRam until a null terminator is encountered
+; Writes text stored in operation_address to the PPU VRam until a null terminator is encountered
 ; This function assumes the PPU Vram address pointer is set to a valid OAM or nametable address
 .proc write_text
     LDY #0  ; The index of the loop used to index characters
     loop:
-        LDA (text_address),y ; Store the current letter with offset y into a
+        LDA (operation_address),y ; Store the current letter with offset y into a
         BEQ exit             ; If we encountered 0, which is the null terminator, return from the loop
         STA PPU_VRAM_IO      ; Store the character into the PPU vram
         INY                  ; Increment the indexing
         JMP loop             ; Loop again (no null terminator encountered yet)
     exit:                    ; Just an exit label to make exiting early from the loop easy
         RTS
+.endproc
+
+; Multiplies the 8 bit value in operation address by A and stores the result in A
+.proc multiply
+    CMP #0 ; Check if A is not already 0
+    TAY    ; Moves A into y
+    LDA #0 ; Gets the value that should by multiplied by A
+    loop:
+        BEQ loop               ; Loop if we haven't reached zero yet
+        CLC                    ; Clear the carry
+        ADC operation_address  ; Add a to operation_address
+        DEY                    ; Decrements Y
+    RTS
+.endproc
+
+; Divides A by the 8 bit value stored in operation address, stores the result in A and the remainder in X
+.proc divide
+    LDY #0                ; Initialize the remainder (Y) to 0
+    LDX #0                ; Initialize the quotient (X) to 0
+    
+divide_loop:
+    CMP operation_address ; Compare current remainder (A) to divisor
+    BCC done_divide       ; If remainder < divisor, division is complete
+    SEC                   ; Set the carry flag for subtraction
+    SBC operation_address ; Subtract divisor from current remainder
+    INX                   ; Increment quotient in X
+    JMP divide_loop       ; Repeat until remainder < divisor
+
+done_divide:
+    TXA                   ; Store the quotient in A
+    TAY                   ; Move the remainder from A to Y
+    RTS                   ; Return with result
 .endproc

@@ -229,12 +229,12 @@ irq:
     JSR clear_nametable    ; Clear the background
 
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
-    m_assign_16i text_address, title_text                  ; Write our title to text address
-    JSR write_text                                         ; Writes the text in text_address to the nametable
+    m_assign_16i operation_address, title_text                  ; Write our title to text address
+    JSR write_text                                         ; Writes the text in operation_address to the nametable
 
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
-    m_assign_16i text_address, press_play_text              ; Write our ppress play text to text address
-    JSR write_text                                          ; Writes the text in text_address to the nametable
+    m_assign_16i operation_address, press_play_text              ; Write our ppress play text to text address
+    JSR write_text                                          ; Writes the text in operation_address to the nametable
 
     m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the vram address to the start of the attribute table
     m_assign_16i paddr, title_colors                   ; Moves title_colors into paddr
