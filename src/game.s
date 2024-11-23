@@ -11,7 +11,7 @@ INES_SRAM = 0 ; Battery backed sram
 .byte $0, $0, $0, $0, $0, $0, $0, $0 ; Padding
 
 .segment "TILES"
-.incbin "game.chr" ; Import the background and sprite character sets
+.incbin "dino.chr" ; Import the background and sprite character sets
 
 .segment "VECTORS" ; The part that has all the interrupt handlers
 .word handle_vblank
@@ -202,8 +202,18 @@ irq:
     JSR display_game_screen ; Finally display the game screen after we are done with the title
 
     ; The main game loop
-    mainloop: 
-        JMP mainloop ; Loop lol
+    mainloop:
+        ; Skip looping if the previous frame has not been drawn
+        LDA nmi_ready ; Grab the NMI status
+        CMP #0        ; Check if it's done rendering the last frame
+        BNE mainloop  ; Jump back to the start to wait until the next frame has been drawn
+
+        JSR dino_update ; Jumps to the main dines updating loop
+
+        ; Ensure our changes are rendered
+        LDA #1        ; Store true in A
+        STA nmi_ready ; Tell the interrupt that we are ready to render a new frame
+        JMP mainloop  ; Loop lol
 .endproc
 
 .proc display_title_screen
@@ -235,30 +245,10 @@ irq:
     RTS
 .endproc
 
+; Literally just clears the screen for the game
 .proc display_game_screen
     JSR ppu_off
     JSR clear_nametable
-
-    m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6)
-    m_assign_16i text_address, title_text
-    JSR write_text
-
-    m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6)
-    m_assign_16i text_address, cool_text
-    JSR write_text
-
-    m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) ; Sets the title text to the first palette table
-    m_assign_16i paddr, title_colors
-
-    LDY #0
-
-    loop:
-        LDA (paddr),y
-        STA PPU_VRAM_IO
-        INY
-        CPY #8
-        BNE loop
-
     JSR ppu_update
     RTS
 .endproc

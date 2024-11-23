@@ -2,7 +2,22 @@
 
 seed: .res 2 ; Defined a seed variable
 
+dino_state: .res 1 ; The current state of the dino
+dino_vx: .res 1    ; The x velocity of the dino
+
+game_speed: .res 1 ; The current speed of the game
+
+; Some dino state flags that we can compare against
+DINO_CROUCH = $01
+DINO_JUMP = $02
+DINO_DEAD = $04
+
 .segment "CODE"
+
+; An update function updating the game loop
+.proc dino_update
+
+.endproc
 
 ; Returns a random 8-bit number in A (0-255), clobbers Y (unknown).
 ; I don't fully understand how this works, but it works, and that's what matters
