@@ -1,7 +1,5 @@
 .segment "ZEROPAGE" ; Variables
 
-seed: .res 2 ; Defined a seed variable
-
 game_ticks: .res 1 ; Game ticks to listen to, can be used to time some things, note that it overflows
 
 dino_state: .res 1 ; The current state of the dino
@@ -31,9 +29,9 @@ DINO_LEGS2 = 7
 DINO_HEAD_DEAD = 10
 
 DINO_POS_X = 50
-FLOOR_HEIGHT = 180 ; This value will also be used as the lowest possible value for the dino
+FLOOR_HEIGHT = 110 ; This value will also be used as the lowest possible value for the dino
 JUMP_FORCE = 6
-CEILING_HEIGHT = 10  ; The maximum height the dino can jump
+CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 
 .segment "CODE"
 
@@ -55,7 +53,6 @@ CEILING_HEIGHT = 10  ; The maximum height the dino can jump
 	STA oam_idx      ; Reset the oam index, I'm pretty sure the PPU has something for this..
 
 	JSR dino_physics ; Handle dino physics
-	JSR dino_input   ; Handle user input
 
 	LDA game_ticks  ; Get current game ticks
 	
@@ -71,6 +68,8 @@ CEILING_HEIGHT = 10  ; The maximum height the dino can jump
 
 skip_change_legs:
 	JSR draw_dino
+
+	JSR dino_input   ; Handle user input
 
 	CLC
 	INC game_ticks ; Increment the game ticks
@@ -92,6 +91,8 @@ skip_change_legs:
     ; Apply jump force
     LDA #JUMP_FORCE
     STA dino_vy
+
+	JSR generate_cactus ; TEMPORARY
 
 continue:
 	RTS
@@ -210,37 +211,5 @@ reset_vel:
 	CLC
 	ADC #4		; Adds 4 to the OAM index
 	STA oam_idx ; Stores A back into oam idx after "incrementing" it
-	RTS
-.endproc
-
-; Returns a random 8-bit number in A (0-255), clobbers Y (unknown).
-; I don't fully understand how this works, but it works, and that's what matters
-.proc prng
-	LDA seed+1
-	TAY ; store copy of high byte
-
-	LSR ; shift to consume zeroes on left...
-	LSR
-	LSR
-	STA seed+1 ; now recreate the remaining bits in reverse order... %111
-	LSR
-	EOR seed+1
-	LSR
-	EOR seed+1
-	EOR seed+0 ; recombine with original low byte
-	STA seed+1
-
-	; compute seed+0 ($39 = %111001)
-	TYA ; original high byte
-	STA seed+0
-	ASL
-	EOR seed+0
-	ASL
-	EOR seed+0
-	ASL
-	ASL
-	ASL
-	EOR seed+0
-	STA seed+0
 	RTS
 .endproc
