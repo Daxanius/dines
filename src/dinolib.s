@@ -54,7 +54,6 @@ CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 	LDA #0	         ; Zero to reset the OAM index
 	STA oam_idx      ; Reset the oam index, I'm pretty sure the PPU has something for this..
 
-	JSR dino_input   ; Handle user input
 	JSR dino_physics ; Handle dino physics
 
 	LDA game_ticks  ; Get current game ticks
