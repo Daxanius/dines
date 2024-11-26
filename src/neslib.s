@@ -196,6 +196,10 @@ seed: .res 2 ; Defined a seed variable
 
 ; Divides A by the 8 bit value stored in operation address, stores the result in A and the remainder in Y
 .proc divide
+    LDX #0                ; Put 0 in X
+    CPX operation_address ; Check if the operation_address is 0
+    BEQ divide_by_zero    ; If operation_address is 0 we can't divide so branch to a subroutine exit
+
     LDY #0                ; Initialize the remainder (Y) to 0
     LDX #0                ; Initialize the quotient (X) to 0
     
@@ -211,6 +215,10 @@ done_divide:
     TAY                   ; Move the remainder from A to Y
     TXA                   ; Store the quotient in A
     RTS                   ; Return with result
+
+divide_by_zero:
+    LDY #0                ; Set the remainder as 0
+    RTS                   ; Leave subroutine
 .endproc
 
 ; Returns a random 8-bit number in A (0-255), clobbers Y (unknown).

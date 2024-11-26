@@ -1,8 +1,11 @@
 .segment "ZEROPAGE" ; Variables
 
-CACTUS_STARTPOS_X = 220
+MIN_SPAWN_DELAY = 50
+MAX_SPAWN_DELAY = 100
 
-cactus_type: .res 1
+time_to_wait: .res 1
+
+CACTUS_STARTPOS_X = 220
 
 ; Cactus texture parts
 CACTUS_TOP_START = 12
@@ -15,6 +18,35 @@ CACTUS_SMALL_START  = 14
 CACTUS_SMALL_END    = 16
 
 .segment "CODE"
+
+.proc cactus_update
+	LDA time_to_wait                            ; Load the dividor in A (so modulo returns 0 or 1)
+    STA operation_address                       ; We will divide A by operation address
+
+	LDA game_ticks                              ; Get current game ticks
+
+    JSR divide                                  ; Divide A by operation address
+
+	TYA 			                            ; Tranfer remainder to A
+	CMP #0 	    	                            ; If game ticks devided by 55 does not have a remainder of 0 
+    BNE skip_generate_cactus                    ; Skip the generation of a cactus
+    JSR generate_cactus                         ; Else it has been 55 game ticks, generate cactus
+
+    LDA #(MAX_SPAWN_DELAY - MIN_SPAWN_DELAY)    ; Give the range of possible cactus bottom parts
+    STA operation_address                       ; We will divide this range by operation_address
+
+    JSR prng                                    ; Generate a random number
+    JSR divide                                  ; Divide A by operation_address
+
+    TYA                                         ; Move the remainder to A to add with carry 
+    CLC                                         ; Make sure carry is clear
+    ADC #MIN_SPAWN_DELAY                        ; Add minimum time to random number to make sure the delay is always atleast the minimum delay
+    STA time_to_wait                            ; Put this time in variable time_to_wait for next cactus generation
+    RTS
+
+    skip_generate_cactus:
+    RTS                                         ; Just don't do anything if we don't need to generate a new cactus
+.endproc
 
 .proc generate_cactus
     LDA #2                  ; Load the dividor in A (so modulo returns 0 or 1)

@@ -54,17 +54,20 @@ CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 
 	JSR dino_physics ; Handle dino physics
 
+	LDA #20                 ; Load the dividor in A (so modulo returns 0 or 1)
+    STA operation_address   ; We will divide A by operation address
+
 	LDA game_ticks  ; Get current game ticks
-	
-	CMP #20 	    ; 50 ticks is about equal to a second
+
+    JSR divide      ; Divide A by operation address
+
+	TYA 			; Tranfer remainder to A
+	CMP #0 	    	; If game ticks devided by 20 has a remainder of 0 
 	BNE skip_change_legs ; Jump to not change legs
 
 	LDA dino_state 		 ; Get the current dino state
 	EOR #DINO_LEG_VARIANT ; Xor with the dino leg variant to toggle
 	STA dino_state       ; Update state with new value
-
-	LDA #0            ; Reset game_ticks after toggling
-	STA game_ticks
 
 skip_change_legs:
 	JSR draw_dino
@@ -91,8 +94,6 @@ skip_change_legs:
     ; Apply jump force
     LDA #JUMP_FORCE
     STA dino_vy
-
-	JSR generate_cactus ; TEMPORARY
 
 continue:
 	RTS
