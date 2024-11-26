@@ -178,7 +178,9 @@ reset_vel:
 	STA oam_px		; Store it to OAM desired position
 
 	LDA dino_py 	; Get the dino y position
-	STA oam_py		; Store it to OAM desired position
+	CLC				; Clear carry
+	SBC #7			; Subtract 7 from the desired y position to draw from the top left
+	STA oam_py 		; Store desired y position
 
 	LDA #DINO_BACK	; Select the back of the dino head
 	JSR draw_sprite ; Draw the back of the dino head
@@ -191,10 +193,8 @@ reset_vel:
 	LDA #DINO_HEAD	; Select the dino head to draw
 	JSR draw_sprite ; Draw the dino head
 
-	LDA oam_py		; Get desired y position
-	CLC				; Clear carry
-	ADC #8			; Add 8 to it
-	STA oam_py 		; Store desired y position
+	LDA dino_py 	; Get the dino y position
+	STA oam_py		; Store it to OAM desired position
 
 	LDA #DINO_ARMS	; Select the dino arms to draw
 	JSR draw_sprite ; Draw the dino arms
