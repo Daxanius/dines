@@ -19,6 +19,8 @@ DINO_DEAD = 4
 DINO_LEG_VARIANT = 8
 DINO_TOUCHED_CEILING = 16
 DINO_ON_GROUND = 32
+DINO_HOLD_JUMP = 64
+DINO_JUMPED = 128
 
 ; Dino texture parts
 DINO_BACK = 1
@@ -81,15 +83,40 @@ skip_change_legs:
 
 ; Handles dino input
 .proc dino_input
-    LDA gamepad    ; Put the user input into A
+    LDA gamepad    ; Put the user input into Accumalator
     AND #PAD_A     ; Listen only for the A button
-    BEQ continue   ; Continue if no input was pressed
+    BEQ checkHold  ; if A isnt pressed check if A was being held down
 
+	;A is being pressed 
+	LDA dino_state			; load state
+	ORA #DINO_HOLD_JUMP		; set DINO_HOLD_JUMP bit
+	STA dino_state			; store updated state
+	BNE jump				; (always) branch to jump
+	;end of A being pressed logic
+
+stopHold:
+	LDA dino_state			; load state
+	ORA #DINO_JUMPED		; set DINO_JUMPED bit
+	STA dino_state			; store updated state
+	BNE return				; (always) branch to return
+
+checkHold:
+	LDA dino_state			; load state
+	AND #DINO_HOLD_JUMP		; compares with DINO_HOLD_JUMP
+	BNE stopHold			; if holding: stop holding
+							; else:
+	LDA dino_state			; load state
+	AND #%10111111			; clear DINO_HOLD_JUMP
+	STA dino_state			; store updated state
+
+return:
+	RTS
+
+jump:
     ; Check if the dino has not touched the ceiling yet
-    LDA dino_state           ; Get the state
+    LDA dino_state            ; Get the state
     AND #DINO_TOUCHED_CEILING ; Get only the touched ceiling bit
-    CMP #0                   ; If it's 0 we can move on
-	BNE continue             ; Continue if we touched the ceiling
+	BNE return                ; Continue if we touched the ceiling
 
     ; Apply jump force
     LDA #JUMP_FORCE
@@ -138,7 +165,7 @@ reset_vel:
 
 	LDA dino_state 		; Fetch the dino state to update
 	ORA DINO_ON_GROUND  ; The dino is on the ground
-	AND #%11101111      ; Clear the DINO_TOUCHED_CEILING bit
+	AND #%01101111      ; Clear the DINO_TOUCHED_CEILING and DINO_JUMPED bit
     STA dino_state      ; Store back the updated state
 
 	RTS
