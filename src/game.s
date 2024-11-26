@@ -26,6 +26,7 @@ oam: .res 256 ; Sprite OAM data
 
 .include "neslib.s"
 .include "dinolib.s"
+.include "cactuslib.s" 
 
 .segment "BSS"
 palette: .res 32 ; Current palette buffer

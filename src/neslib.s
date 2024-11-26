@@ -76,6 +76,8 @@ gamepad: .res 1
 
 operation_address: .res 2 ; The address used for multiple functions such as for text drawing, multiplication and division
 
+seed: .res 2 ; Defined a seed variable
+
 .include "macros.s"
 
 .segment "CODE"
@@ -192,7 +194,7 @@ operation_address: .res 2 ; The address used for multiple functions such as for 
     RTS
 .endproc
 
-; Divides A by the 8 bit value stored in operation address, stores the result in A and the remainder in X
+; Divides A by the 8 bit value stored in operation address, stores the result in A and the remainder in Y
 .proc divide
     LDY #0                ; Initialize the remainder (Y) to 0
     LDX #0                ; Initialize the quotient (X) to 0
@@ -209,4 +211,36 @@ done_divide:
     TAY                   ; Move the remainder from A to Y
     TXA                   ; Store the quotient in A
     RTS                   ; Return with result
+.endproc
+
+; Returns a random 8-bit number in A (0-255), clobbers Y (unknown).
+; I don't fully understand how this works, but it works, and that's what matters
+.proc prng
+	LDA seed+1
+	TAY ; store copy of high byte
+
+	LSR ; shift to consume zeroes on left...
+	LSR
+	LSR
+	STA seed+1 ; now recreate the remaining bits in reverse order... %111
+	LSR
+	EOR seed+1
+	LSR
+	EOR seed+1
+	EOR seed+0 ; recombine with original low byte
+	STA seed+1
+
+	; compute seed+0 ($39 = %111001)
+	TYA ; original high byte
+	STA seed+0
+	ASL
+	EOR seed+0
+	ASL
+	EOR seed+0
+	ASL
+	ASL
+	ASL
+	EOR seed+0
+	STA seed+0
+	RTS
 .endproc
