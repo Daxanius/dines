@@ -27,13 +27,57 @@ CACTUS_SMALL_END    = 16
 
     STY is_big
 
+    LDA #1
+    CMP is_big
+    BEQ big_cactus
     JSR make_small_cactus
+    RTS
+
+    big_cactus:
+    JSR make_big_cactus
+    RTS
+    
+.endproc
+
+.proc make_big_cactus
+
+    LDA #CACTUS_STARTPOS_X
+    STA oam_px
+
+    LDA #FLOOR_HEIGHT
+    STA oam_py
+
+    LDA #(CACTUS_BOT_END - CACTUS_BOT_START)
+    STA operation_address
+
+    JSR prng
+    JSR divide
+
+    TYA
+    CLC
+    ADC #CACTUS_BOT_START
+
+    JSR draw_sprite
+
+    LDA #(FLOOR_HEIGHT - 8)
+    STA oam_py
+
+    LDA #(CACTUS_TOP_END - CACTUS_TOP_START)
+    STA operation_address
+
+    JSR prng
+    JSR divide
+
+    TYA
+    CLC
+    ADC #CACTUS_TOP_START
+
+    JSR draw_sprite
 
     RTS
 .endproc
 
 .proc make_small_cactus
-
     LDA #CACTUS_STARTPOS_X
     STA oam_px
 
@@ -53,8 +97,4 @@ CACTUS_SMALL_END    = 16
     JSR draw_sprite
 
     RTS
-.endproc
-
-.proc make_big_cactus
-
 .endproc
