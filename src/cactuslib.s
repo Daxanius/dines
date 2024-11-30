@@ -62,21 +62,59 @@ time_to_wait: .res 1
         JSR check_and_delete_segment ; Check and potentially delete a cactus segment
         LDX oam_idx                  ; Get the current oam index again
 
-        ; Update the cactus position
-        LDA oam+3, x   ; Get the x position of the cactus
-        CLC
-        SBC game_speed ; Subtract the game speed from the X position
-        STA oam+3, x   ; Store a back into the OAM with the new position
+        LDX oam_idx                  ; Load the original index again
+        JSR check_dino_collision     ; Check if the dino collided with this cactus part
 
-        ; Increment the loop
-        TXA         ; Move x into a
-        CLC
-        ADC #4      ; Increment A by 4
-        STA oam_idx ; Store the offset 
-        
-        BVC loop    ; Continue looping if we did not overflow
+        CMP #0                       ; If A is 0, aka no collision was detected
+        BEQ continue                 ; Move on with no collisions
+
+        LDA dino_state               ; Fetch the dino state
+        ORA #DINO_DEAD               ; Set dead to true
+        STA dino_state               ; Update the dino state   
+    
+        RTS                          ; Otherwise return from this subroutine
+
+        continue:
+            ; Update the cactus position
+            LDA oam+3, x   ; Get the x position of the cactus
+            CLC
+            SBC game_speed ; Subtract the game speed from the X position
+            STA oam+3, x   ; Store a back into the OAM with the new position
+
+            ; Increment the loop
+            TXA         ; Move x into a
+            CLC
+            ADC #4      ; Increment A by 4
+            STA oam_idx ; Store the offset 
+            
+            BVC loop    ; Continue looping if we did not overflow
         
     done_looping:
+        RTS
+.endproc
+
+; Checks segment collision with segment in Y with any dino parts and updates accordingly, stores 0 in A if nothing happened
+.proc check_dino_collision
+    LDY oam ; Start of the oam
+    loop:
+        JSR check_collision 
+
+        ; Increment x 4 times to go to the next OAM part
+        INY
+        INY
+        INY
+        INY
+        CPY #(4 + 4 + 4 + 4) ; Check if we still have dino parts to loop through
+        BPL end     ; No collision detected
+
+        CMP #0      ; If no collision happened
+        BEQ loop    ; Check against the next part
+
+        LDA #1      ; Collision happened
+        RTS
+
+    end:
+        LDA #0
         RTS
 .endproc
 

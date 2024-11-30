@@ -89,7 +89,7 @@ skip_change_legs:
 .proc dino_input
     LDA gamepad    ; Put the user input into Accumalator
     AND #PAD_A     ; Listen only for the A button
-    BEQ checkHold  ; if A isnt pressed check if A was being held down
+    BEQ check_hold  ; if A isnt pressed check if A was being held down
 
 	;A is being pressed 
 	LDA dino_state			; load state
@@ -98,16 +98,16 @@ skip_change_legs:
 	BNE jump				; (always) branch to jump
 	;end of A being pressed logic
 
-stopHold:
+stop_hold:
 	LDA dino_state			; load state
 	ORA #DINO_JUMPED		; set DINO_JUMPED bit
 	STA dino_state			; store updated state
 	BNE return				; (always) branch to return
 
-checkHold:
+check_hold:
 	LDA dino_state			; load state
 	AND #DINO_HOLD_JUMP		; compares with DINO_HOLD_JUMP
-	BNE stopHold			; if holding: stop holding
+	BNE stop_hold			; if holding: stop holding
 							; else:
 	LDA dino_state			; load state
 	AND #%10111111			; clear DINO_HOLD_JUMP
@@ -138,9 +138,9 @@ continue:
     CMP #CEILING_HEIGHT
     BMI update_position ; If we did not touch the ceiling, update state
 
-    LDA dino_state           ; Get the state
-    ORA DINO_TOUCHED_CEILING ; Set the touched ceiling flag
-    STA dino_state           ; Update the state
+    LDA dino_state            ; Get the state
+    ORA #DINO_TOUCHED_CEILING ; Set the touched ceiling flag
+    STA dino_state            ; Update the state
 
 update_position:
 	LDA dino_py	        ; Get the position of the dino

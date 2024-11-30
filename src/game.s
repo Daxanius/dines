@@ -223,7 +223,18 @@ irq:
         ; Ensure our changes are rendered
         LDA #1        ; Store true in A
         STA nmi_ready ; Make sure when we loop again, we wait until the VBlank interrupt is called before moving on
-        JMP mainloop  ; Loop lol
+
+        LDA dino_state  ; Get the dino state
+        AND #DINO_DEAD  ; Get the dino dead value
+        CMP #DINO_DEAD  ; Check the dino dead value
+
+        BNE mainloop    ; Loop again if the dino is shown to be alive
+        CMP #DINO_DEAD
+
+    game_over_loop:
+        JMP handle_reset ; Just reset for now
+
+    RTS
 .endproc
 
 .proc display_title_screen
