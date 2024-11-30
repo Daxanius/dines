@@ -46,6 +46,8 @@ CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 	STA dino_state   ; Reset the dino state
 	STA game_ticks	 ; Reset game_ticks
 
+	LDA #1
+	STA game_speed
 	RTS
 .endproc
 
@@ -57,6 +59,8 @@ CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 	JSR dino_physics ; Handle dino physics
 
 	LDA #20                 ; Load the dividor in A (so modulo returns 0 or 1)
+	CLC 
+	SBC game_speed			; Subtract game speed from the stepping cooldown
     STA operation_address   ; We will divide A by operation address
 
 	LDA game_ticks  ; Get current game ticks
@@ -139,12 +143,12 @@ continue:
     STA dino_state           ; Update the state
 
 update_position:
-	LDA dino_py		  ; Get the position of the dino
-	CLC 		      ; Clear the carry before applying velocity
-	SBC dino_vy       ; Apply the y velocity
-	CMP #FLOOR_HEIGHT ; Check if the position is not underneath the y position
-	BPL reset_vel 	  ; Go to reset velocity if the position is underneath the base position
-	BEQ reset_vel     ; Also go to reset when it is equal to the floor height
+	LDA dino_py	        ; Get the position of the dino
+	CLC 		        ; Clear the carry before applying velocity
+	SBC dino_vy         ; Apply the y velocity
+	CMP #FLOOR_HEIGHT-1 ; Check if the position is not underneath the y position
+	BPL reset_vel 	    ; Go to reset velocity if the position is underneath the base position
+	BEQ reset_vel       ; Also go to reset when it is equal to the floor height
 
 	STA dino_py  ; Store the position
 	
@@ -160,7 +164,7 @@ reset_vel:
 	LDA #0		; Set A to 0
 	STA dino_vy ; Reset the y velocity of the dino
 
-	LDA #FLOOR_HEIGHT+1	; Get the floor height
+	LDA #FLOOR_HEIGHT 	; Get the floor height
 	STA dino_py			; Reset the position to the floor height
 
 	LDA dino_state 		; Fetch the dino state to update
