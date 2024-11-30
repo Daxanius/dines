@@ -82,16 +82,17 @@ time_to_wait: .res 1
 
 ; Deletes the segment at register x
 .proc check_and_delete_segment
-    LDA oam+3, x  ; Get the x position of the cactus
-    CMP #0        ; Compare it against 0
-    BNE skip       ; Skip to the end if the cactus part has not hit 0 yet
+    start:
+        LDA oam+3, x  ; Get the x position of the cactus
+        CMP #0        ; Compare it against 0
+        BNE skip       ; Skip to the end if the cactus part has not hit 0 yet
 
-    ; Reset all oam parts
-    LDA #0          
-    STA oam, x 
-    STA oam+1, x
-    STA oam+2, x
-    STA oam+3, x
+        ; Reset all oam parts
+        LDA #0          
+        STA oam, x 
+        STA oam+1, x
+        STA oam+2, x
+        STA oam+3, x
 
     shift_loop:
         ; Move the next sprite data back to the current slot
@@ -123,7 +124,7 @@ time_to_wait: .res 1
 
         ; Recursively keep checking for deletion
         LDX oam_idx
-        JSR check_and_delete_segment
+        JMP start
     skip:
         RTS
 .endproc
