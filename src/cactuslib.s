@@ -60,9 +60,11 @@ time_to_wait: .res 1
         BEQ done_looping ; Stop looping if we hit an empty sprite
 
         JSR check_and_delete_segment ; Check and potentially delete a cactus segment
-        LDX oam_idx                  ; Get the current oam index again
 
-        LDX oam_idx                  ; Load the original index again
+        LDX oam_idx           ; Load the original index again
+        CPX #12               ; Check if we are at the start of the dino
+        BEQ continue_removed  ; If we are at the start, we skip checking non existing segments...
+
         JSR check_dino_collision     ; Check if the dino collided with this cactus part
 
         CMP #0                       ; If A is 0, aka no collision was detected
@@ -73,6 +75,9 @@ time_to_wait: .res 1
         STA dino_state               ; Update the dino state   
     
         RTS                          ; Otherwise return from this subroutine
+
+        continue_removed:
+
 
         continue:
             ; Update the cactus position
@@ -104,13 +109,13 @@ time_to_wait: .res 1
         INY
         INY
         INY
-        CPY #(4 + 4 + 4 + 4) ; Check if we still have dino parts to loop through
-        BPL end     ; No collision detected
+        CPY #12  ; Check if we still have dino parts to loop through
+        BPL end  ; No collision detected
 
-        CMP #0      ; If no collision happened
-        BEQ loop    ; Check against the next part
+        CMP #0   ; If no collision happened
+        BEQ loop ; Check against the next part
 
-        LDA #1      ; Collision happened
+        LDA #1   ; Collision happened
         RTS
 
     end:
@@ -123,18 +128,21 @@ time_to_wait: .res 1
     start:
         LDA oam+3, x  ; Get the x position of the cactus
         CMP #0        ; Compare it against 0
-        BNE skip       ; Skip to the end if the cactus part has not hit 0 yet
+        BNE skip      ; Skip to the end if the cactus part has not hit 0 yet
 
         ; Reset all oam parts
-        LDA #0          
+        LDA #0
         STA oam, x 
         STA oam+1, x
         STA oam+2, x
         STA oam+3, x
 
+        CPX #(255-3)  ; Check if we are at the last element
+        BEQ skip      ; Skip if we are at the last element
+
     shift_loop:
         ; Move the next sprite data back to the current slot
-        LDA oam+4, x        ; Load the next sprite's data
+        LDA oam+4, x    ; Load the next sprite's data
         STA oam, x      ; Store it in the previous slot
         LDA oam+5, x
         STA oam+1, x
