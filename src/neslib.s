@@ -255,6 +255,7 @@ divide_by_zero:
 
 ; Sets A to its absolute value
 .proc abs
+    CMP #0
     BPL done          ; If A is positive (bit 7 is 0), skip the negation
     EOR #$FF          ; Invert all bits (Two's complement step 1)
     CLC               ; Clear carry for addition
