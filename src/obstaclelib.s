@@ -77,13 +77,13 @@ spotsUntilObstacle: .res 1
     TXA                                                      ; retreive random number generated earlier
     JSR divide                                               ; divide, remainder in Y
     CPY #0                                                   ; if remainder == 0
-    BEQ do_generate_flying_dino                              ; generate flying dino
+    BEQ do_generate_bird                                     ; generate flying dino
 
     JSR generate_cactus                                      ; else generate cactus
     RTS                                                      ; return so it doesnt also generate flying dino
 
-    do_generate_flying_dino:
-    JSR generate_flying_dino                                 ; go to generate flying dino function
+    do_generate_bird:
+    JSR generate_bird                                        ; go to generate flying dino function
     RTS                                                      ; return 
 
 
