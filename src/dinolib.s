@@ -118,7 +118,7 @@ continue:
 
 crouch_false:
 	LDA dino_state
-	AND #%10111110
+	AND #%11111110
 	STA dino_state
 
 end_check:
