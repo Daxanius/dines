@@ -102,23 +102,26 @@ continue:
 
 ; Handles dino input
 .proc dino_input
-	crouch_input:
-		LDA gamepad    ; Put the user input into Accumalator
-		AND #PAD_D     ; Listen only for the down button
-		BEQ crouch_false ; If down isn't pressed, go to crouch false
+	LDA gamepad    ; Put the user input into Accumalator
+	AND #PAD_D     ; Listen only for the down button
+	BEQ crouch_false ; If down isn't pressed, go to crouch false
 
-		; Set the dino to crouching
-		LDA dino_state
-		ORA #DINO_CROUCH
-		STA dino_state
-		JMP end_check
+	; Check if the dino is on the ground
+	LDA dino_state
+	AND #DINO_ON_GROUND
+	BEQ crouch_false   ; Set crouching to false if the dino is not on the ground
 
-	crouch_false:
-		LDA dino_state
-		AND #%10111110
-		STA dino_state
+	; Set the dino to crouching
+	ORA #DINO_CROUCH
+	STA dino_state
+	JMP end_check
 
-	end_check:
+crouch_false:
+	LDA dino_state
+	AND #%10111110
+	STA dino_state
+
+end_check:
 
     LDA gamepad    ; Put the user input into Accumalator
     AND #PAD_A     ; Listen only for the A button
@@ -159,7 +162,6 @@ jump:
     LDA #JUMP_FORCE
     STA dino_vy
 
-continue:
 	RTS
 .endproc
 
@@ -201,7 +203,7 @@ reset_vel:
 	STA dino_py			; Reset the position to the floor height
 
 	LDA dino_state 		; Fetch the dino state to update
-	ORA DINO_ON_GROUND  ; The dino is on the ground
+	ORA #DINO_ON_GROUND  ; The dino is on the ground
 	AND #%01101111      ; Clear the DINO_TOUCHED_CEILING and DINO_JUMPED bit
     STA dino_state      ; Store back the updated state
 

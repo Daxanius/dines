@@ -219,7 +219,8 @@ irq:
         JSR gamepad_poll ; Fetch the user input
         JSR dino_update ; Jumps to the main dines updating loop
         JSR obstacle_update ; Jumps to the cactus updating loop
-        m_inc_16_i distance ;increments distance
+        CLC
+        m_adc_16_i distance,game_speed ;increments distance
 
         ; Ensure our changes are rendered
         LDA #1        ; Store true in A

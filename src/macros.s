@@ -23,6 +23,16 @@
 @done:  ; A little label to jump early in the macro
 .endmacro
 
+;add 8 bit value at address2 to 16 bit number at address
+.macro m_adc_16_i address, address2
+    LDA address+1   ; load low order byte
+    ADC address2    ; add the 2 8 bit values
+    STA address+1   ; store low order byte
+    BVC @done       ; end if no overflow
+    INC address     ; increment high order byte (if overflow)
+@done: 
+.endmacro
+
 ; Check out https://www.nesdev.org/wiki/PPU_programmer_reference#Address_($2006)_>>_write_x2
 .macro m_vram_set_address newaddress
     LDA PPU_STATUS        ; Clear w (write latch) of the PPU, which keeps track of which byte is being written
