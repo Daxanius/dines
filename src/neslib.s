@@ -255,26 +255,29 @@ divide_by_zero:
 
 ; Checks collision between 2 OAM sprites stored in Y and X, sets A to 1 if there was a collision detected
 .proc check_collision
-    ; Calculate the difference in X positions
-    LDA oam+3, x     ; Load X position of sprite X
-    SBC oam+3, y     ; Subtract X position of sprite Y
-    BMI no_overlap   ; If result < 0, no overlap detected
-    CMP #8           ; Check if result is within sprite width
-    BPL no_overlap   ; If result >= 8, no overlap on X-axis
+    ; Check X-axis overlap
+    LDA oam+3, x      ; Load X position of sprite X
+    SEC               ; Set carry for subtraction
+    SBC oam+3, y      ; Subtract X position of sprite Y
+    BCC no_overlap    ; If result < 0, no overlap on X-axis
+    CMP #8            ; Compare with sprite width (8 pixels)
+    BCS no_overlap    ; If result >= 8, no overlap on X-axis
 
-    ; Calculate the difference in Y positions
-    LDA oam, x       ; Load Y position of sprite X
-    SBC oam, y       ; Subtract Y position of sprite Y
-    BMI no_overlap   ; If result < 0, no overlap detected
-    CMP #8           ; Check if result is within sprite height
-    BPL no_overlap   ; If result >= 8, no overlap on Y-axis
+    ; Check Y-axis overlap
+    LDA oam, x        ; Load Y position of sprite X
+    SEC               ; Set carry for subtraction
+    SBC oam, y        ; Subtract Y position of sprite Y
+    BCC no_overlap    ; If result < 0, no overlap on Y-axis
+    CMP #8            ; Compare with sprite height (8 pixels)
+    BCS no_overlap    ; If result >= 8, no overlap on Y-axis
 
     ; If both X and Y overlap, return true
-    LDA #1             ; Set A to 1 to indicate collision
+    LDA #1            ; Set A to 1 to indicate collision
     RTS
 
 no_overlap:
-    ; No collision
-    LDA #0             ; Set A to 0 to indicate no collision
+    ; If no overlap, return false
+    LDA #0            ; Set A to 0 to indicate no collision
     RTS
+
 .endproc

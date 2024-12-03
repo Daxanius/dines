@@ -109,7 +109,7 @@ time_to_wait: .res 1
         INY
         INY
         INY
-        CPY #12  ; Check if we still have dino parts to loop through
+        CPY #16  ; Check if we still have dino parts to loop through
         BPL end  ; No collision detected
 
         CMP #0   ; If no collision happened

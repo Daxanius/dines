@@ -30,6 +30,12 @@ DINO_LEGS1 = 5
 DINO_LEGS2 = 7
 DINO_HEAD_DEAD = 10
 
+; Dino crouched texture parts
+DINO_CROUCH_TAIL = 37
+DINO_CROUCH_BACK = 38
+DINO_CROUCH_HEAD = 39
+DINO_CROUCH_BACK_VARIANT = 41 ; For the walking animation
+
 DINO_POS_X = 50
 FLOOR_HEIGHT = 180 ; This value will also be used as the lowest possible value for the dino
 JUMP_FORCE = 6
@@ -50,6 +56,8 @@ CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 	STA game_speed
 	RTS
 .endproc
+
+
 
 ; An update function updating the game loop
 .proc dino_update
@@ -76,8 +84,17 @@ CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 	STA dino_state       ; Update state with new value
 
 skip_change_legs:
-	JSR draw_dino
+	LDA dino_state 	   ; Get the current dino state
+	AND #DINO_CROUCH   ; Check if the dino is crouching
+	BNE draw_crouched  ; If the dino is crouching
 
+	JSR draw_dino
+	JMP continue
+
+draw_crouched:
+	JSR draw_dino_crouched
+
+continue:
 	JSR dino_input   ; Handle user input
 
 	CLC
@@ -87,9 +104,27 @@ skip_change_legs:
 
 ; Handles dino input
 .proc dino_input
+	crouch_input:
+		LDA gamepad    ; Put the user input into Accumalator
+		AND #PAD_D     ; Listen only for the down button
+		BEQ crouch_false ; If down isn't pressed, go to crouch false
+
+		; Set the dino to crouching
+		LDA dino_state
+		ORA #DINO_CROUCH
+		STA dino_state
+		JMP end_check
+
+	crouch_false:
+		LDA dino_state
+		AND #%10111110
+		STA dino_state
+
+	end_check:
+
     LDA gamepad    ; Put the user input into Accumalator
     AND #PAD_A     ; Listen only for the A button
-    BEQ check_hold  ; if A isnt pressed check if A was being held down
+    BEQ check_hold ; if A isnt pressed check if A was being held down
 
 	;A is being pressed 
 	LDA dino_state			; load state
@@ -175,7 +210,7 @@ reset_vel:
 	RTS
 .endproc
 
-; Puts the dino in the OAM
+; Puts the crouching dino in the oam
 ; Refer to https://www.nesdev.org/wiki/PPU_OAM
 .proc draw_dino
 	LDA #DINO_POS_X	; Get the dino x position
@@ -221,6 +256,51 @@ reset_vel:
 
 	draw:
 		JSR draw_sprite ; Draw the dino legs
+	RTS
+.endproc
+
+; Puts the dino in the OAM
+; Refer to https://www.nesdev.org/wiki/PPU_OAM
+.proc draw_dino_crouched
+	LDA #DINO_POS_X	; Get the dino x position
+	STA oam_px		; Store it to OAM desired position
+
+	LDA dino_py 	; Get the dino y position
+	STA oam_py 		; Store desired y position
+
+	LDA #DINO_CROUCH_TAIL	; Select the tail of the dino head
+	JSR draw_sprite 		; Draw the back of the dino head
+
+	LDA oam_px		; Get desired x position
+	CLC				; Clear carry
+	ADC #8			; Add 8 to it
+	STA oam_px 		; Store desired x position
+
+	LDA dino_state  ; Get the dino state for the legs
+	AND #DINO_LEG_VARIANT ; Check against the leg variant
+	CMP #0				 ; Check if the legs were set
+	BNE leg_2			 ; Jump to leg 2 if they were were set
+
+	LDA #DINO_CROUCH_BACK	; Select the dino legs to draw
+	JMP draw				; Jump to the drawing logic
+
+	leg_2:
+		LDA #DINO_CROUCH_BACK_VARIANT	; Select the second dino back
+
+	draw:
+		JSR draw_sprite ; Draw the dino leg variant
+
+	LDA oam_px		; Get desired x position
+	CLC				; Clear carry
+	ADC #8			; Add 8 to it
+	STA oam_px 		; Store desired x position
+
+	LDA #DINO_CROUCH_HEAD	; Select the dino head to draw
+	JSR draw_sprite 		; Draw the dino head
+
+	LDA #0
+	JSR draw_sprite
+
 	RTS
 .endproc
 
