@@ -264,6 +264,14 @@ done:
     RTS               ; Return from subroutine
 .endproc
 
+.proc inv
+    EOR #$FF          ; Invert all bits (Two's complement step 1)
+    CLC               ; Clear carry for addition
+    ADC #$01          ; Add 1 (Two's complement step 2)
+    RTS               ; Return from subroutine
+.endproc
+
+
 ; Checks collision between 2 OAM sprites stored in Y and X, sets A to 1 if there was a collision detected
 .proc check_collision
     ; Calculate the difference in X positions
@@ -278,7 +286,7 @@ done:
     LDA oam, x       ; Load Y position of sprite X
     CLC
     SBC oam, y       ; Subtract Y position of sprite Y
-    JSR abs          ; Get the absolute value for the distance
+    JSR inv          ; Invert it for the Y position
     CMP #8           ; Check if result is within sprite height
     BPL no_overlap   ; If result >= 8, no overlap on Y-axis
 
