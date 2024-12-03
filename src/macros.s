@@ -17,10 +17,10 @@
 ; Increments a 16 bit value
 .macro m_inc_16_i address
     INC address+1  ; Increment the first part of the value
-    BNE _done      ; Branch if the first part did not overflow
+    BNE @done      ; Branch if the first part did not overflow
     INC address    ; Increment the second part of the value
 
-_done:  ; A little label to jump early in the macro
+@done:  ; A little label to jump early in the macro
 .endmacro
 
 ; Check out https://www.nesdev.org/wiki/PPU_programmer_reference#Address_($2006)_>>_write_x2
