@@ -15,10 +15,10 @@ WING_DINO_STARTPOS_Y1     = FLOOR_HEIGHT - 2
 WING_DINO_STARTPOS_Y2     = FLOOR_HEIGHT - 12
 WING_DINO_STARTPOS_Y3     = FLOOR_HEIGHT - 28
 
-
-
 ; Bird texture parts
 ; Sprite 1, wing up
+BIRD_TILE_START = 16
+
 BIRD_WING_UP_TOP_FRONT    = 16
 BIRD_WING_UP_TOP_BACK     = 17
 BIRD_WING_UP_BOTTOM_FRONT = 18
@@ -40,6 +40,8 @@ CACTUS_BOT_END   = 12
 CACTUS_SMALL_START  = 14
 CACTUS_SMALL_END    = 16
 
+BIRD_FLAP_TICKS = 10
+
 spotsUntilObstacle: .res 1 
 
 .segment "CODE"
@@ -58,7 +60,7 @@ spotsUntilObstacle: .res 1
 
     DEC spotsUntilObstacle                        ; Decrement spotsUntilCactus
     BPL skip_generate_cactus                    ; if result is positive,skip generation
-                                                ; else (0 or < 0) generate cactus
+    ; else (0 or < 0) generate cactus
 
     ;generate position of next cactus
     LDA #(MAX_SPOTS_BETWEEN_OBSTACLES - MIN_SPOTS_BETWEEN_OBSTACLES) ; Load the difference between max and min
@@ -93,6 +95,15 @@ spotsUntilObstacle: .res 1
 
 ; Updates all existing cactus segments
 .proc segment_update
+    LDA #BIRD_FLAP_TICKS    ; Fetch the amount of ticks per bird flap
+    STA operation_address   ; Store it to perform a calculation with
+    LDA game_ticks          ; Fetch the game ticks
+
+    JSR divide              ; Divide them to get the remainder for toggling
+
+    TYA                     ; Store Y (remainder) in A
+    PHA                     ; Store the remainder on the stack because A will be used
+
     loop:
         LDX oam_idx     ; Load x at the start of the (last) OAM index
 
@@ -101,25 +112,33 @@ spotsUntilObstacle: .res 1
         CMP #0           ; Check if the sprite is "empty" / has tile 0
         BEQ done_looping ; Stop looping if we hit an empty sprite
 
-        JSR check_and_delete_segment ; Check and potentially delete a cactus segment
+        JSR check_and_delete_segment ; Check and potentially delete a segment
 
         LDX oam_idx           ; Load the original index again
         CPX #12               ; Check if we are at the start of the dino
-        BEQ continue_removed  ; If we are at the start, we skip checking non existing segments...
+        BEQ continue  ; If we are at the start, we skip checking non existing segments...
 
-        JSR check_dino_collision     ; Check if the dino collided with this cactus part
+        PLA              ; Get the flap remainder from the stack
+        CMP #0           ; Check if the remainder is 0
+        BNE skip_bird    ; If it is not 0, we skip updating the bird
 
-        CMP #0                       ; If A is 0, aka no collision was detected
-        BEQ continue                 ; Move on with no collisions
+        TAY             ; Move the remainder into Y because A will be used
+        JSR update_bird_animation ; Update the bird animation (clobbering A)
+        TYA             ; Move Y back into A
 
-        LDA dino_state               ; Fetch the dino state
-        ORA #DINO_DEAD               ; Set dead to true
-        STA dino_state               ; Update the dino state   
-    
-        RTS                          ; Otherwise return from this subroutine
+    skip_bird:
+            PHA        ; Store the remainder on the stack again for later use
 
-        continue_removed:
+            JSR check_dino_collision     ; Check if the dino collided with this part
 
+            CMP #0                       ; If A is 0, aka no collision was detected
+            BEQ continue                 ; Move on with no collisions
+
+            LDA dino_state               ; Fetch the dino state
+            ORA #DINO_DEAD               ; Set dead to true
+            STA dino_state               ; Update the dino state   
+        
+            JMP done_looping             ; Otherwise return from this subroutine
 
         continue:
             ; Update the cactus position
@@ -137,6 +156,7 @@ spotsUntilObstacle: .res 1
             BVC loop    ; Continue looping if we did not overflow
         
     done_looping:
+        PLA             ; Clean the remainder from the stack, it is no longer needed
         RTS
 .endproc
 
@@ -287,11 +307,35 @@ draw_flying_dino:
     RTS
 .endproc
 
+; Updates the bird part at register x 
 .proc update_bird_animation
- 
-    RTS
+    LDA oam+1, x         ; Get the tile index of the bird part
+    CLC                  ; Clear the carry flag for safe arithmetic
+    SBC #(BIRD_TILE_START-1) ; Normalize to the bird tile range
+
+    CMP #4               ; Check if it's within the "up" state range (0-3)
+    BCC set_bird_down    ; If less than 4, switch to "down" state
+
+    CMP #8               ; Check if it's within the "down" state
+    BCC set_bird_up      ; If less than 8, switch to the up state
+
+    RTS                  ; If it isn't a bird tile, just ignore it
+
+    set_bird_up:
+        CLC
+        ADC #(BIRD_TILE_START-4) ; Add the start offset back
+        JMP return
+
+    set_bird_down:
+        CLC
+        ADC #(BIRD_TILE_START+4) ; Add the start offset back
+
+    return:
+        STA oam+1, x         ; Update the bird part with the new tile
+        RTS                  ; Return from subroutine
 .endproc
 
+; Generates a random cactus and puts it in the OAM
 .proc generate_cactus
     LDA #2                  ; Load the dividor in A (so modulo returns 0 or 1)
     STA operation_address   ; We will divide A by operation address
@@ -310,6 +354,7 @@ draw_flying_dino:
     
 .endproc
 
+; Generates a big cactus and puts it in the OAM
 .proc make_big_cactus
     LDA #OBSTACLE_STARTPOS_X                    ; Load the starting x-pos into A 
     STA oam_px                                  ; Tell "draw_sprite" at what x-pos it should start drawing the sprite
@@ -347,6 +392,7 @@ draw_flying_dino:
     RTS
 .endproc
 
+; Generates a small cactus and puts it in the OAM
 .proc make_small_cactus
     LDA #OBSTACLE_STARTPOS_X                        ; Load the starting x-pos into A 
     STA oam_px                                      ; Tell "draw_sprite" what x-pos to start drawing the sprite
