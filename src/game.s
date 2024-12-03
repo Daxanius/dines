@@ -26,7 +26,7 @@ oam: .res 256 ; Sprite OAM data
 
 .include "neslib.s"
 .include "dinolib.s"
-.include "cactuslib.s" 
+.include "obstaclelib.s" 
 
 .segment "BSS"
 palette: .res 32 ; Current palette buffer
@@ -218,6 +218,7 @@ irq:
 
         JSR gamepad_poll ; Fetch the user input
         JSR dino_update ; Jumps to the main dines updating loop
+        JSR obstacle_update ; Jumps to the cactus updating loop
         JSR cactus_update ; Jumps to the cactus updating loop
         CLC
         m_adc_16_i distance,game_speed ;increments distance

@@ -6,8 +6,23 @@ SPOT_DISTANCE           = 8     ; distance between every possible cactus spot (m
 MIN_SPOTS_BETWEEN_CACTI = 5     ; minimum spots between cacti spawns (multiply by spot distance for minimum distance between cacti)
 MAX_SPOTS_BETWEEN_CACTI = 10    ; ^^but maximum
 
+; Obstacle start positions
+OBSTACLE_STARTPOS_X    = 254
 
-CACTUS_STARTPOS_X = 254
+WING_DINO_STARTPOS_Y = FLOOR_HEIGHT - 16
+
+; Flying dino texture parts
+; Sprite 1, wing up
+WING_UP_DINO_TOP_FRONT    = 16
+WING_UP_DINO_TOP_BACK     = 17
+WING_UP_DINO_BOTTOM_FRONT = 18
+WING_UP_DINO_BOTTOM_BACK  = 19
+
+; Sprite 2, wing down
+WING_DOWN_DINO_TOP_FRONT    = 20
+WING_DOWN_DINO_TOP_BACK     = 21
+WING_DOWN_DINO_BOTTOM_FRONT = 22
+WING_DOWN_DINO_BOTTOM_BACK  = 23
 
 ; Cactus texture parts
 CACTUS_TOP_START = 12
@@ -21,28 +36,30 @@ CACTUS_SMALL_END    = 16
 
 spotsUntilCactus: .res 1 
 
-
 .segment "CODE"
 
-.proc cactus_update
+.proc obstacle_update
     JSR segment_update                          ; Update all existing cactus segments
 
-    LDA #SPOT_DISTANCE                   ;
+    LDA SPOT_DISTANCE                           ; Load the dividor in A (so modulo returns 0 or 1)
     STA operation_address                       ; We will divide A by operation address
 
-    LDA distance+1                              ; Load the low byte of distance
+    LDA distance + 1                            ; Get current game ticks
     JSR divide                                  ; Divide A by operation address
 
-    CPY #0 	    	                            ; If distance(low byte) divided by SPOT_DISTANCE does not have a remainder of 0 
-    BNE skip_generate_cactus                    ; Skip the generation of a cactus
+    CPY #50
+    BEQ make_flying_dino
 
+    CPY #0 	    	                            ; If distance(low byte) divided by SPOT_DISTANCE does not have a remainder of 0
+    BNE skip_generate_obstacle                  ; Skip the generation of a cactus
+    
     DEC spotsUntilCactus                        ; Decrement spotsUntilCactus
-    BPL skip_generate_cactus                    ; if result is positive,skip generation
+    BPL skip_generate_obstacle                  ; if result is positive,skip generation
                                                 ; else (0 or < 0) generate cactus
 
-    JSR generate_cactus                         ; Generate Catus
+    JSR generate_cactus                         ; Generate Cactus
 
-    ;generate position of next cactus
+     ;generate position of next cactus
     LDA #(MAX_SPOTS_BETWEEN_CACTI - MIN_SPOTS_BETWEEN_CACTI) ; Load the difference between max and min
     STA operation_address                                    ; Store in operation address for division
 
@@ -54,8 +71,13 @@ spotsUntilCactus: .res 1
     ADC #MIN_SPOTS_BETWEEN_CACTI                             ; add min so range goes from [0-offset] to [min-max]
     STA spotsUntilCactus                                     ; store for later use
 
-    RTS                                                      ; return 
-    skip_generate_cactus:
+    RTS                                                      ; return   
+
+    make_flying_dino:
+        JSR generate_flying_dino
+        RTS
+
+    skip_generate_obstacle:
         RTS                                                  ; Just don't do anything if we don't need to generate a new cactus
 .endproc
 
@@ -114,12 +136,12 @@ spotsUntilCactus: .res 1
     loop:
         JSR check_collision 
 
-        ; Increment x 4 times to go to the next OAM part
+        ; Increment y 4 times to go to the next OAM part
         INY
         INY
         INY
         INY
-        CPY #16  ; Check if we still have dino parts to loop through
+        CPY #12  ; Check if we still have dino parts to loop through
         BPL end  ; No collision detected
 
         CMP #0   ; If no collision happened
@@ -185,6 +207,60 @@ spotsUntilCactus: .res 1
         RTS
 .endproc
 
+.proc generate_flying_dino
+    ; Draw top back of wing dino while wing is down
+    LDA #OBSTACLE_STARTPOS_X
+    STA oam_px
+
+    LDA #(WING_DINO_STARTPOS_Y - 8)
+    STA oam_py
+
+    LDA #WING_DOWN_DINO_TOP_BACK
+
+    JSR draw_sprite
+
+    ; Draw top front of wing dino while wing is down
+    LDA #(OBSTACLE_STARTPOS_X - 8)
+    STA oam_px
+
+    LDA #(WING_DINO_STARTPOS_Y - 8)
+    STA oam_py
+    
+    LDA #WING_DOWN_DINO_TOP_FRONT
+
+    JSR draw_sprite
+
+    ; Draw bottom front of wing dino while wing is down
+    LDA #(OBSTACLE_STARTPOS_X - 8)
+    STA oam_px
+
+    LDA #WING_DINO_STARTPOS_Y
+    STA oam_py
+
+    LDA #WING_DOWN_DINO_BOTTOM_FRONT
+
+    JSR draw_sprite
+
+    ; Draw bottom back of wing dino while wing is down
+    LDA #OBSTACLE_STARTPOS_X
+    STA oam_px
+
+    LDA #WING_DINO_STARTPOS_Y
+    STA oam_py
+
+    LDA #WING_DOWN_DINO_BOTTOM_BACK
+
+    JSR draw_sprite
+
+    RTS
+.endproc
+
+.proc update_flying_dino_animation
+    
+    
+    RTS
+.endproc
+
 .proc generate_cactus
     LDA #2                  ; Load the dividor in A (so modulo returns 0 or 1)
     STA operation_address   ; We will divide A by operation address
@@ -204,7 +280,7 @@ spotsUntilCactus: .res 1
 .endproc
 
 .proc make_big_cactus
-    LDA #CACTUS_STARTPOS_X                      ; Load the starting x-pos into A 
+    LDA #OBSTACLE_STARTPOS_X                    ; Load the starting x-pos into A 
     STA oam_px                                  ; Tell "draw_sprite" at what x-pos it should start drawing the sprite
 
     LDA #FLOOR_HEIGHT                           ; Load the starting y-pos into A
@@ -241,7 +317,7 @@ spotsUntilCactus: .res 1
 .endproc
 
 .proc make_small_cactus
-    LDA #CACTUS_STARTPOS_X                          ; Load the starting x-pos into A 
+    LDA #OBSTACLE_STARTPOS_X                        ; Load the starting x-pos into A 
     STA oam_px                                      ; Tell "draw_sprite" what x-pos to start drawing the sprite
 
     LDA #FLOOR_HEIGHT                               ; Load the starting y-pos into A
