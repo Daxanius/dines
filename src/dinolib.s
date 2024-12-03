@@ -57,8 +57,6 @@ CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 	RTS
 .endproc
 
-
-
 ; An update function updating the game loop
 .proc dino_update
 	LDA #0	         ; Zero to reset the OAM index
