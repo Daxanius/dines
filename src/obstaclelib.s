@@ -1,7 +1,10 @@
 .segment "ZEROPAGE" ; Variables
 
-MIN_SPAWN_DELAY = 100
-MAX_SPAWN_DELAY = 200
+distance: .res 2 ;will be used for highscore and cactus spawning
+
+SPOT_DISTANCE           = 8     ; distance between every possible cactus spot (multiple of 2 for easier use)
+MIN_SPOTS_BETWEEN_CACTI = 5     ; minimum spots between cacti spawns (multiply by spot distance for minimum distance between cacti)
+MAX_SPOTS_BETWEEN_CACTI = 10    ; ^^but maximum
 
 ; Obstacle start positions
 OBSTACLE_STARTPOS_X    = 254
@@ -31,45 +34,51 @@ CACTUS_BOT_END   = 12
 CACTUS_SMALL_START  = 14
 CACTUS_SMALL_END    = 16
 
-time_to_wait: .res 1
+spotsUntilCactus: .res 1 
 
 .segment "CODE"
 
 .proc obstacle_update
     JSR segment_update                          ; Update all existing cactus segments
 
-    LDA time_to_wait                            ; Load the dividor in A (so modulo returns 0 or 1)
+    LDA SPOT_DISTANCE                           ; Load the dividor in A (so modulo returns 0 or 1)
     STA operation_address                       ; We will divide A by operation address
 
-    LDA game_ticks                              ; Get current game ticks
+    LDA distance + 1                            ; Get current game ticks
     JSR divide                                  ; Divide A by operation address
 
     CPY #50
     BEQ make_flying_dino
 
-    CPY #0 	    	                            ; If game ticks devided by 55 does not have a remainder of 0 
+    CPY #0 	    	                            ; If distance(low byte) divided by SPOT_DISTANCE does not have a remainder of 0
     BNE skip_generate_obstacle                  ; Skip the generation of a cactus
     
-    JSR generate_cactus                         ; Else it has been 55 game ticks, generate cactus
+    DEC spotsUntilCactus                        ; Decrement spotsUntilCactus
+    BPL skip_generate_obstacle                  ; if result is positive,skip generation
+                                                ; else (0 or < 0) generate cactus
 
-    LDA #(MAX_SPAWN_DELAY - MIN_SPAWN_DELAY)    ; Give the range of possible cactus bottom parts
-    STA operation_address                       ; We will divide this range by operation_address
+    JSR generate_cactus                         ; Generate Cactus
 
-    JSR prng                                    ; Generate a random number
-    JSR divide                                  ; Divide A by operation_address
+     ;generate position of next cactus
+    LDA #(MAX_SPOTS_BETWEEN_CACTI - MIN_SPOTS_BETWEEN_CACTI) ; Load the difference between max and min
+    STA operation_address                                    ; Store in operation address for division
 
-    TYA                                         ; Move the remainder to A to add with carry 
-    CLC                                         ; Make sure carry is clear
-    ADC #MIN_SPAWN_DELAY                        ; Add minimum time to random number to make sure the delay is always atleast the minimum delay
-    STA time_to_wait                            ; Put this time in variable time_to_wait for next cactus generation
-    RTS
+    JSR prng                                                 ; generate random number in A
+    JSR divide                                               ; store random % (Max - Min) in Y
+    TYA                                                      ; transfer randomized offset to A
+
+    CLC                                                      ; clear carry
+    ADC #MIN_SPOTS_BETWEEN_CACTI                             ; add min so range goes from [0-offset] to [min-max]
+    STA spotsUntilCactus                                     ; store for later use
+
+    RTS                                                      ; return   
 
     make_flying_dino:
         JSR generate_flying_dino
         RTS
 
     skip_generate_obstacle:
-        RTS                                     ; Just don't do anything if we don't need to generate a new cactus
+        RTS                                                  ; Just don't do anything if we don't need to generate a new cactus
 .endproc
 
 ; Updates all existing cactus segments
