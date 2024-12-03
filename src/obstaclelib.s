@@ -3,13 +3,18 @@
 distance: .res 2 ;will be used for highscore and cactus spawning
 
 SPOT_DISTANCE           = 8     ; distance between every possible cactus spot (multiple of 2 for easier use)
-MIN_SPOTS_BETWEEN_CACTI = 5     ; minimum spots between cacti spawns (multiply by spot distance for minimum distance between cacti)
-MAX_SPOTS_BETWEEN_CACTI = 10    ; ^^but maximum
+MIN_SPOTS_BETWEEN_OBSTACLES = 5     ; minimum spots between cacti spawns (multiply by spot distance for minimum distance between cacti)
+MAX_SPOTS_BETWEEN_OBSTACLES = 10    ; ^^but maximum
+BIRD_RARITY = 5                     ; chance of spawning a flying dino instead of cactus => 1/BIRD_RARITY
 
 ; Obstacle start positions
 OBSTACLE_STARTPOS_X    = 254
 
-WING_DINO_STARTPOS_Y = FLOOR_HEIGHT - 16
+WING_DINO_STARTPOS_Y1     = FLOOR_HEIGHT - 2
+WING_DINO_STARTPOS_Y2     = FLOOR_HEIGHT - 12
+WING_DINO_STARTPOS_Y3     = FLOOR_HEIGHT - 28
+
+
 
 ; Flying dino texture parts
 ; Sprite 1, wing up
@@ -34,50 +39,54 @@ CACTUS_BOT_END   = 12
 CACTUS_SMALL_START  = 14
 CACTUS_SMALL_END    = 16
 
-spotsUntilCactus: .res 1 
+spotsUntilObstacle: .res 1 
 
 .segment "CODE"
 
 .proc obstacle_update
     JSR segment_update                          ; Update all existing cactus segments
 
-    LDA SPOT_DISTANCE                           ; Load the dividor in A (so modulo returns 0 or 1)
+    LDA #SPOT_DISTANCE                          ;
     STA operation_address                       ; We will divide A by operation address
 
-    LDA distance + 1                            ; Get current game ticks
+    LDA distance+1                              ; Load the low byte of distance
     JSR divide                                  ; Divide A by operation address
 
-    CPY #50
-    BEQ make_flying_dino
+    CPY #0                                      ; If distance(low byte) divided by SPOT_DISTANCE does not have a remainder of 0 
+    BNE skip_generate_cactus                    ; Skip the generation of a cactus
 
-    CPY #0 	    	                            ; If distance(low byte) divided by SPOT_DISTANCE does not have a remainder of 0
-    BNE skip_generate_obstacle                  ; Skip the generation of a cactus
-    
-    DEC spotsUntilCactus                        ; Decrement spotsUntilCactus
-    BPL skip_generate_obstacle                  ; if result is positive,skip generation
+    DEC spotsUntilObstacle                        ; Decrement spotsUntilCactus
+    BPL skip_generate_cactus                    ; if result is positive,skip generation
                                                 ; else (0 or < 0) generate cactus
 
-    JSR generate_cactus                         ; Generate Cactus
-
-     ;generate position of next cactus
-    LDA #(MAX_SPOTS_BETWEEN_CACTI - MIN_SPOTS_BETWEEN_CACTI) ; Load the difference between max and min
+    ;generate position of next cactus
+    LDA #(MAX_SPOTS_BETWEEN_OBSTACLES - MIN_SPOTS_BETWEEN_OBSTACLES) ; Load the difference between max and min
     STA operation_address                                    ; Store in operation address for division
-
     JSR prng                                                 ; generate random number in A
-    JSR divide                                               ; store random % (Max - Min) in Y
+    TAX                                                      ; store random number for deciding between dino and cactus
+    JSR divide                                               ; store random % (Max - Min) i n Y
     TYA                                                      ; transfer randomized offset to A
-
     CLC                                                      ; clear carry
-    ADC #MIN_SPOTS_BETWEEN_CACTI                             ; add min so range goes from [0-offset] to [min-max]
-    STA spotsUntilCactus                                     ; store for later use
+    ADC #MIN_SPOTS_BETWEEN_OBSTACLES                         ; add min so range goes from [0-offset] to [min-max]
+    STA spotsUntilObstacle                                   ; store for later use
 
-    RTS                                                      ; return   
 
-    make_flying_dino:
-        JSR generate_flying_dino
-        RTS
+    LDA #BIRD_RARITY                                         ; load bird rarity
+    STA operation_address                                    ; store to be used as divisor 
+    TXA                                                      ; retreive random number generated earlier
+    JSR divide                                               ; divide, remainder in Y
+    CPY #0                                                   ; if remainder == 0
+    BEQ do_generate_flying_dino                              ; generate flying dino
 
-    skip_generate_obstacle:
+    JSR generate_cactus                                      ; else generate cactus
+    RTS                                                      ; return so it doesnt also generate flying dino
+
+    do_generate_flying_dino:
+    JSR generate_flying_dino                                 ; go to generate flying dino function
+    RTS                                                      ; return 
+
+
+    skip_generate_cactus:
         RTS                                                  ; Just don't do anything if we don't need to generate a new cactus
 .endproc
 
@@ -208,11 +217,31 @@ spotsUntilCactus: .res 1
 .endproc
 
 .proc generate_flying_dino
+    LDA #3
+    STA operation_address
+    JSR prng 
+    JSR divide
+    CPY #0
+    BEQ height2
+    CPY #1
+    BEQ height3
+
+height1:
+    LDY #(WING_DINO_STARTPOS_Y1 - 8)
+    JMP draw_flying_dino
+height2:
+    LDY #(WING_DINO_STARTPOS_Y2 - 8)
+    JMP draw_flying_dino
+height3:
+    LDY #(WING_DINO_STARTPOS_Y3 - 8)
+
+
+draw_flying_dino:
     ; Draw top back of wing dino while wing is down
     LDA #OBSTACLE_STARTPOS_X
     STA oam_px
 
-    LDA #(WING_DINO_STARTPOS_Y - 8)
+    TYA
     STA oam_py
 
     LDA #WING_DOWN_DINO_TOP_BACK
@@ -223,7 +252,7 @@ spotsUntilCactus: .res 1
     LDA #(OBSTACLE_STARTPOS_X - 8)
     STA oam_px
 
-    LDA #(WING_DINO_STARTPOS_Y - 8)
+    TYA
     STA oam_py
     
     LDA #WING_DOWN_DINO_TOP_FRONT
@@ -234,7 +263,9 @@ spotsUntilCactus: .res 1
     LDA #(OBSTACLE_STARTPOS_X - 8)
     STA oam_px
 
-    LDA #WING_DINO_STARTPOS_Y
+    TYA
+    ADC #8
+    TAY
     STA oam_py
 
     LDA #WING_DOWN_DINO_BOTTOM_FRONT
@@ -245,7 +276,7 @@ spotsUntilCactus: .res 1
     LDA #OBSTACLE_STARTPOS_X
     STA oam_px
 
-    LDA #WING_DINO_STARTPOS_Y
+    TYA
     STA oam_py
 
     LDA #WING_DOWN_DINO_BOTTOM_BACK
