@@ -17,7 +17,7 @@
 ; Increments a 16 bit value
 .macro m_inc_16_i address
     INC address+1  ; Increment the first part of the value
-    BNE @done      ; Branch if the first part did not overflow
+    BVC @done      ; Branch if the first part did not overflow
     INC address    ; Increment the second part of the value
 
 @done:  ; A little label to jump early in the macro

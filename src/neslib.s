@@ -197,11 +197,10 @@ seed: .res 2 ; Defined a seed variable
 ; Divides A by the 8 bit value stored in operation address, stores the result in A and the remainder in Y
 .proc divide
     LDX #0                ; Put 0 in X
+    LDY #0                ; Initialize the remainder (Y) to 0
+
     CPX operation_address ; Check if the operation_address is 0
     BEQ divide_by_zero    ; If operation_address is 0 we can't divide so branch to a subroutine exit
-
-    LDY #0                ; Initialize the remainder (Y) to 0
-    LDX #0                ; Initialize the quotient (X) to 0
     
 divide_loop:
     CMP operation_address ; Compare current remainder (A) to divisor
@@ -214,10 +213,8 @@ divide_loop:
 done_divide:
     TAY                   ; Move the remainder from A to Y
     TXA                   ; Store the quotient in A
-    RTS                   ; Return with result
 
 divide_by_zero:
-    LDY #0                ; Set the remainder as 0
     RTS                   ; Leave subroutine
 .endproc
 
@@ -276,9 +273,18 @@ done:
 .proc check_collision
     ; Calculate the difference in X positions
     LDA oam+3, x     ; Load X position of sprite X
-    CLC               ; Set carry for subtraction
+    CLC              ; Set carry for subtraction
     SBC oam+3, y     ; Subtract X position of sprite Y
-    JSR abs          ; Get the absolute value for the distance
+
+    ; JSR abs          ; Get the absolute value for the distance
+    ; The absolute without JSR, saving 6 cycles
+    CMP #0
+    BPL done_abs_x    ; If A is positive (bit 7 is 0), skip the negation
+    EOR #$FF          ; Invert all bits (Two's complement step 1)
+    CLC               ; Clear carry for addition
+    ADC #$01          ; Add 1 (Two's complement step 2)
+done_abs_x:
+
     CMP #8           ; Check if result is within sprite width
     BCS no_overlap   ; If result >= 8, no overlap on X-axis
 
@@ -286,7 +292,16 @@ done:
     LDA oam, x       ; Load Y position of sprite X
     CLC               ; Set carry for subtraction
     SBC oam, y       ; Subtract Y position of sprite Y
-    JSR abs          ; Get the absolute value for the distance
+    
+    ;JSR abs          ; Get the absolute value for the distance
+    ; The absolute without JSR, saving 6 cycles
+    CMP #0
+    BPL done_abs_y    ; If A is positive (bit 7 is 0), skip the negation
+    EOR #$FF          ; Invert all bits (Two's complement step 1)
+    CLC               ; Clear carry for addition
+    ADC #$01          ; Add 1 (Two's complement step 2)
+done_abs_y:
+
     CMP #8           ; Check if result is within sprite height
     BCS no_overlap   ; If result >= 8, no overlap on Y-axis
 

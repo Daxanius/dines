@@ -58,7 +58,7 @@ spotsUntilObstacle: .res 1
     CPY #0                                      ; If distance(low byte) divided by SPOT_DISTANCE does not have a remainder of 0 
     BNE skip_generate_cactus                    ; Skip the generation of a cactus
 
-    DEC spotsUntilObstacle                        ; Decrement spotsUntilCactus
+    DEC spotsUntilObstacle                       ; Decrement spotsUntilCactus
     BPL skip_generate_cactus                    ; if result is positive,skip generation
     ; else (0 or < 0) generate cactus
 
@@ -114,9 +114,9 @@ spotsUntilObstacle: .res 1
 
         JSR check_and_delete_segment ; Check and potentially delete a segment
 
-        LDX oam_idx           ; Load the original index again
-        CPX #12               ; Check if we are at the start of the dino
-        BEQ continue  ; If we are at the start, we skip checking non existing segments...
+        LDA oam+1, x     ; Fetch the sprite tile index
+        CMP #0           ; Check if the sprite is "empty" / has tile 0
+        BEQ done_looping ; Stop looping if we hit an empty sprite
 
         PLA              ; Get the flap remainder from the stack
         CMP #0           ; Check if the remainder is 0
@@ -126,8 +126,12 @@ spotsUntilObstacle: .res 1
         JSR update_bird_animation ; Update the bird animation (clobbering A)
         TYA             ; Move Y back into A
 
-    skip_bird:
+    skip_bird:    
             PHA        ; Store the remainder on the stack again for later use
+
+            LDA oam+3, x            ; Get the X position of the tile
+            CMP #(DINO_POS_X + 18)  ; Compare against the dino x position
+            BPL continue            ; If the X position is too large to check for collision we skip the expensive collision
 
             JSR check_dino_collision     ; Check if the dino collided with this part
 
@@ -140,39 +144,40 @@ spotsUntilObstacle: .res 1
         
             JMP done_looping             ; Otherwise return from this subroutine
 
-        continue:
-            ; Update the cactus position
-            LDA oam+3, x   ; Get the x position of the cactus
-            CLC
-            SBC game_speed ; Subtract the game speed from the X position
-            STA oam+3, x   ; Store a back into the OAM with the new position
+    continue:
+        ; Update the cactus position
+        LDA oam+3, x   ; Get the x position of the cactus
+        CLC
+        SBC game_speed ; Subtract the game speed from the X position
+        STA oam+3, x   ; Store a back into the OAM with the new position
 
-            ; Increment the loop
-            TXA         ; Move x into a
-            CLC
-            ADC #4      ; Increment A by 4
-            STA oam_idx ; Store the offset 
-            
-            BVC loop    ; Continue looping if we did not overflow
+        ; Increment the loop
+        TXA         ; Move x into a
+        CLC
+        ADC #4      ; Increment A by 4
+        STA oam_idx ; Store the offset 
+        
+        BVC loop    ; Continue looping if we did not overflow
         
     done_looping:
         PLA             ; Clean the remainder from the stack, it is no longer needed
         RTS
 .endproc
 
-; Checks segment collision with segment in Y with any dino parts and updates accordingly, stores 0 in A if nothing happened
+; Checks segment collision with segment in X with any dino parts and updates accordingly, stores 0 in A if nothing happened
 .proc check_dino_collision
     LDY oam ; Start of the oam
     loop:
-        JSR check_collision 
+        CPY #12  ; Check if we still have dino parts to loop through
+        BPL end  ; No collision detected
+
+        JSR check_collision ; Check for collision
 
         ; Increment y 4 times to go to the next OAM part
         INY
         INY
         INY
         INY
-        CPY #12  ; Check if we still have dino parts to loop through
-        BPL end  ; No collision detected
 
         CMP #0   ; If no collision happened
         BEQ loop ; Check against the next part
@@ -219,20 +224,19 @@ spotsUntilObstacle: .res 1
         INX
         INX
         CPX #(255-3)       ; Have we reached the end of the OAM?
-        BEQ end_shift      ; If so, exit the loop
-        JMP shift_loop     ; Else continue looping
+        BNE shift_loop     ; If not, continue looping
 
-    end_shift:
-        ; Mark the last sprite slot as unused (optional cleanup)
-        LDA #0
-        STA oam, x
-        STA oam+1, x
-        STA oam+2, x
-        STA oam+3, x
+    ; Mark the last sprite slot as unused (optional cleanup)
+    LDA #0
+    STA oam, x
+    STA oam+1, x
+    STA oam+2, x
+    STA oam+3, x
 
-        ; Recursively keep checking for deletion
-        LDX oam_idx
-        JMP start
+    ; Recursively keep checking for deletion
+    LDX oam_idx
+    JMP start
+
     skip:
         RTS
 .endproc
