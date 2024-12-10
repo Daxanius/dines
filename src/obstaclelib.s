@@ -44,12 +44,6 @@ spotsUntilObstacle: .res 1
 
 .segment "CODE"
 
-.proc obstacle_start 
-    LDA #0  ; Put 0 in a
-    STA last_oam_idx ; Reset the last oam index with 0
-    RTS
-.endproc
-
 .proc obstacle_update
     ; Update ppu scroll
     LDA game_speed   ; Fetch the game speed

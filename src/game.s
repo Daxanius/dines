@@ -257,7 +257,6 @@ skip_scroll:
     
     JSR display_game_screen ; Finally display the game screen after we are done with the title
     JSR dino_start          ; Jump to the setup function for the main game
-    JSR obstacle_start      ; Jump to the obstacle setup function
     LDA #1
     STA displayScore
 
