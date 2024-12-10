@@ -62,8 +62,8 @@ PAD_R = $80
 ; Useful PPU memory addresses
 NAME_TABLE_0_ADDRESS = $2000
 ATTRIBUTE_TABLE_0_ADDRESS = $23C0
-NAME_TABLE_1_ADDRESS = $2400
-ATTRIBUTE_TABLE_1_ADDRESS = $27C0
+NAME_TABLE_1_ADDRESS = $2800
+ATTRIBUTE_TABLE_1_ADDRESS = $2BC0
 
 .segment "ZEROPAGE"
 
@@ -120,15 +120,46 @@ temp: .res 5
 .endproc
 
 ; Clears the background (nametable + attribute table)
-.proc clear_nametable
+.proc clear_nametable0
         LDA PPU_STATUS  ; Resets the PPU w latch
 
         ; Starting at PPU ADDRESS 2000 we will start resetting everything
-        LDA #$20             ; Stores 20 into a, which will be set as the VRAM address
-        STA PPU_VRAM_ADDRESS ; Store 20 into the PPU VRAM address
+        LDA #>NAME_TABLE_0_ADDRESS  ; Stores 20 into a, which will be set as the VRAM address
+        STA PPU_VRAM_ADDRESS        ; Store 20 into the PPU VRAM address
 
-        LDA #$00             ; Set a to 00
+        LDA #<NAME_TABLE_0_ADDRESS  ; Set a to 00
         STA PPU_VRAM_ADDRESS ; Store 00 into the PPU VRAM address
+
+        LDA #0  ; Set a to 0, which will be used to set the PPU nametable value to 0
+        LDY #30 ; Rows
+    rowloop:
+        LDX #32 ; Columns
+        columnloop:
+            STA PPU_VRAM_IO ; Store A in the current PPU Vram slot
+            DEX             ; Decrement the column index
+            BNE columnloop  ; Jump back to columnloop if we aren't done yet
+            DEY             ; Decrement the row index
+            BNE rowloop     ; Jump back to row loop if there's rows left
+    
+    LDX #64 ; Clear the attribute table containing 64 elements
+    loop:
+        STA PPU_VRAM_IO ; Store A into the attribute table address
+        DEX             ; Decrement the index
+        BNE loop        ; Continue looping through the attribute table if we aren't done yet
+
+    RTS
+.endproc
+
+; Clears the second nametable
+.proc clear_nametable1
+        LDA PPU_STATUS  ; Resets the PPU w latch
+
+        ; Starting at PPU ADDRESS 2000 we will start resetting everything
+        LDA #>NAME_TABLE_1_ADDRESS  ; Stores 20 into a, which will be set as the VRAM address
+        STA PPU_VRAM_ADDRESS        ; Store 20 into the PPU VRAM address
+
+        LDA #<NAME_TABLE_1_ADDRESS  ; Set a to 00
+        STA PPU_VRAM_ADDRESS        ; Store 00 into the PPU VRAM address
 
         LDA #0  ; Set a to 0, which will be used to set the PPU nametable value to 0
         LDY #30 ; Rows

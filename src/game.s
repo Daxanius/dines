@@ -313,7 +313,8 @@ skip_scroll:
 
 .proc display_title_screen
     JSR ppu_off            ; Disable the PPU
-    JSR clear_nametable    ; Clear the background
+    JSR clear_nametable0   ; Clear the background
+    JSR clear_nametable1   ; Clear the background
 
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
     m_assign_16i operation_address, title_text             ; Write our title to text address
@@ -345,7 +346,7 @@ skip_scroll:
 ; Creates a procedural background screen for the game in both nametables
 .proc display_game_screen
     JSR ppu_off
-    JSR clear_nametable
+    JSR clear_nametable0
 
     m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
 
