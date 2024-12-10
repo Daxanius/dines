@@ -362,7 +362,7 @@ irq:
         CPY #32
         BNE loop_ground_nt1
 
-    m_vram_set_address(NAME_TABLE_0_ADDRESS + 20)
+    m_vram_set_address(NAME_TABLE_0_ADDRESS + 20 )
 
 
     LDA #83

@@ -112,6 +112,7 @@ continue:
 	BEQ crouch_false   ; Set crouching to false if the dino is not on the ground
 
 	; Set the dino to crouching
+	LDA dino_state
 	ORA #DINO_CROUCH
 	STA dino_state
 	JMP end_check
