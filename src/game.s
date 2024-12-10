@@ -58,6 +58,12 @@ press_play_text:
 cool_text:
     .byte "GAME",0
 
+game_over_text:
+    .byte "GAME OVER", 0
+
+restart_text:
+    .byte "PRESS START TO RESTART", 0
+
 title_colors:
     .byte %00000101,%00000101,%00000101,%00000101
     .byte %00000101,%00000101,%00000101,%00000101
@@ -237,11 +243,45 @@ irq:
         CMP #DINO_DEAD  ; Check the dino dead value
 
         BNE mainloop    ; Loop again if the dino is shown to be alive
-        CMP #DINO_DEAD
+
+        JSR display_gameover_screen
 
     game_over_loop:
-        JMP handle_reset ; Just reset for now
+        JSR gamepad_poll        ; Fetch the user input
+        LDA gamepad             ; Put the user input into A
+        AND #PAD_START          ; Listen only for the A button
+        BEQ game_over_loop      ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
 
+        JSR handle_reset    
+    RTS
+.endproc
+
+.proc display_gameover_screen
+    JSR ppu_off            ; Disable the PPU
+
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
+    m_assign_16i operation_address, game_over_text         ; Write our title to text address
+    JSR write_text                                         ; Writes the text in operation_address to the nametable
+
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 14 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
+    m_assign_16i operation_address, restart_text            ; Write our title to text address
+    JSR write_text                                         ; Writes the text in operation_address to the nametable
+
+
+    m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the vram address to the start of the attribute table
+    m_assign_16i paddr, title_colors                   ; Moves title_colors into paddr
+
+    LDY #0 ; Reset y to use for writing the colors to the PPU
+
+    ; Writes paddr to the attribute table of the first nametable
+    loop:
+        LDA (paddr),y
+        STA PPU_VRAM_IO
+        INY
+        CPY #8    ; We can only put 8 colors into the attribute table
+        BNE loop
+
+    JSR ppu_update ; Update the PPU
     RTS
 .endproc
 
