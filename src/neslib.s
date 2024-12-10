@@ -80,6 +80,8 @@ operation_address: .res 2 ; The address used for multiple functions such as for 
 
 seed: .res 2 ; Defined a seed variable
 
+temp: .res 5
+
 .include "macros.s"
 
 .segment "CODE"
@@ -269,6 +271,97 @@ done:
     CLC               ; Clear carry for addition
     ADC #$01          ; Add 1 (Two's complement step 2)
     RTS               ; Return from subroutine
+.endproc
+
+.proc add_score
+    CLC
+    ADC score
+    sta score
+    cmp #99
+    bcc @skip
+
+    SEC
+    SBC #100
+    STA score
+    INC score+1
+    LDA score+1
+    CMP #99
+    BCC @skip
+
+    SEC
+    SBC #100
+    STA score+1
+    INC score+2
+    LDA score+2
+    CMP #99
+    BCC @skip
+    SEC 
+    SBC #100
+    STA score+2
+
+@skip:
+    RTS
+.endproc
+
+;stores output in A and X
+.proc dec99_to_string
+    LDX #0
+    CMP #50
+    BCC @try20  ;branch if dec99 < 50
+    SBC #50     
+    LDX #5
+    BNE @try20
+
+@div20:
+    INX
+    INX
+    SBC #20
+
+@try20:
+    CMP #20
+    BCS @div20 ;branch if dec99 > 20
+
+
+@try10:
+    CMP #10     
+    BCC @finished   ;branch if dec99 < 10
+    SBC #10
+    INX
+
+@finished:
+    RTS
+.endproc
+
+.proc display_score
+    m_vram_set_address(NAME_TABLE_0_ADDRESS + 26)
+    LDA score+2
+    JSR dec99_to_string
+
+    STX temp
+    STA temp+1
+
+    LDA score+1
+    JSR dec99_to_string
+    STX temp+2
+    STA temp+3
+
+    LDA score
+    JSR dec99_to_string
+    STX temp+4
+    STA temp+5
+
+    LDX #0
+
+    @loop:
+        lda temp,x
+        clc
+        adc #48
+        sta PPU_VRAM_IO
+        inx
+        cpx #6
+        bne @loop
+    m_vram_clear_address
+    rts
 .endproc
 
 ; Checks collision between 2 OAM sprites stored in Y and X, sets A to 1 if there was a collision detected

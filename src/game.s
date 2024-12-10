@@ -21,6 +21,9 @@ INES_SRAM = 0 ; Battery backed sram
 .segment "ZEROPAGE" ; Variables
 paddr: .res 2
 
+score: .res 3 ;3 bytes for score, each byte storing 2 digits
+displayScore: .res 1
+
 .segment "OAM"
 oam: .res 256 ; Sprite OAM data
 
@@ -161,11 +164,17 @@ irq:
         CPX #32         ; Check if X has not hit 32 yet
         BCC @loop       ; Continue looping as long as we haven't gone through the palette yet
 
+    LDA displayScore
+    BEQ @skip
+    JSR display_score
+
+@skip:
+    LDA #0                  ; Reset A
+
     LDA ppu_scroll_x         ; Get the ppu scroll set variable
     STA PPU_SCROLL_ADDRESS   ; Store ppu scroll x to ppu scroll address
-
-    LDA #0                   ; We won't use the y position of ppu scroll, just set it to 0
-    STA PPU_SCROLL_ADDRESS   ; Reset the scroll adress on the Y axis
+    LDA #0                   ; Reset ppu scroll y
+    STA PPU_SCROLL_ADDRESS   ; Store ppu scroll 0 into y
 
     LDA ppu_ctl              ; Get the PPU control settings
     STA PPU_CONTROL          ; Send the PPU control settings to the PPU
@@ -199,6 +208,7 @@ irq:
     JSR dino_start             ; Jump to the setup function for the main game
     JSR display_title_screen   ; Display the title screen
 
+
     ; These settings were getting in the way.. I don't even know what  they were supposed to do
     ; Thanks for being very clear book... Commenting them out fixed dino drawing
     ; Someone please figure this out for me
@@ -220,6 +230,8 @@ irq:
     JSR display_game_screen ; Finally display the game screen after we are done with the title
     JSR dino_start          ; Jump to the setup function for the main game
     JSR obstacle_start      ; Jump to the obstacle setup function
+    LDA #1
+    STA displayScore
 
     ; The main game loop
     mainloop:
@@ -233,6 +245,8 @@ irq:
         JSR obstacle_update ; Jumps to the cactus updating loop
         CLC
         m_adc_16_i distance,game_speed ;increments distance
+        LDA game_speed
+        JSR add_score 
 
         ; Ensure our changes are rendered
         LDA #1        ; Store true in A
@@ -348,6 +362,22 @@ irq:
         CPY #32
         BNE loop_ground_nt1
 
+    m_vram_set_address(NAME_TABLE_0_ADDRESS + 20)
+
+
+    LDA #83
+    STA PPU_VRAM_IO
+    LDA #67
+    STA PPU_VRAM_IO
+    LDA #79
+    STA PPU_VRAM_IO
+    LDA #82
+    STA PPU_VRAM_IO
+    LDA #69
+    STA PPU_VRAM_IO
+    LDA #58
+    STA PPU_VRAM_IO
     JSR ppu_update
+
     RTS
 .endproc
