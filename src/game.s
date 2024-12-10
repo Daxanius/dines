@@ -52,9 +52,6 @@ default_palette:
 FLOOR_TILES_START = 34
 FLOOR_TILES_END = 36
 
-CLOUD_MIN_HEIGHT = 16
-CLOUD_MAX_HEIGHT = (FLOOR_HEIGHT - 20)
-
 ; Cloud tile info
 CLOUD_LEFT_START = 24
 CLOUD_LEFT_END = 25
@@ -80,6 +77,9 @@ game_over_text:
 
 restart_text:
     .byte "PRESS START TO RESTART", 0
+
+score_text:
+    .byte "SCORE: ", 0
 
 title_colors:
     .byte %00000101,%00000101,%00000101,%00000101
@@ -363,6 +363,17 @@ skip_scroll:
     JSR ppu_off
     JSR clear_nametable0
 
+    ; Spread some clouds around lol
+    m_vram_set_address (NAME_TABLE_1_ADDRESS + 10 * 32) 
+    JSR create_cloud
+    
+    m_vram_set_address (NAME_TABLE_1_ADDRESS + 13 * 32 + 12)
+    JSR create_cloud
+
+    m_vram_set_address (NAME_TABLE_1_ADDRESS + 32 * 32 + 80)
+    JSR create_cloud
+
+
     m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
 
     LDY #0
@@ -387,29 +398,18 @@ skip_scroll:
         CPY #32
         BNE loop_ground
 
-    m_vram_set_address(NAME_TABLE_0_ADDRESS + 20 )
+    m_vram_set_address(NAME_TABLE_0_ADDRESS + 19)
+    m_assign_16i operation_address, score_text     ; Write our score to text address
+    JSR write_text                                 ; Writes the text in operation_address to the nametable
 
-    LDA #83
-    STA PPU_VRAM_IO
-    LDA #67
-    STA PPU_VRAM_IO
-    LDA #79
-    STA PPU_VRAM_IO
-    LDA #82
-    STA PPU_VRAM_IO
-    LDA #69
-    STA PPU_VRAM_IO
-    LDA #58
-    STA PPU_VRAM_IO
-    JSR ppu_update
-
+    JSR ppu_update ; Update the PPU
     RTS
 .endproc
 
 ; Creates a cloud at a random position
 .proc create_cloud
     ; Left cloud part generation
-    LDA #(CLOUD_LEFT_END - CLOUD_LEFT_START) ; Max random cloud parts
+    LDA #(CLOUD_LEFT_END - CLOUD_LEFT_START + 1) ; Max random cloud parts
     STA operation_address                    ; Store in operation address
     JSR prng                                 ; Generate random number
     JSR divide                               ; Fetch modulo for cloud part
@@ -420,7 +420,7 @@ skip_scroll:
     STA PPU_VRAM_IO ; Store left cloud part on nametable
 
     ; Right cloud part generation
-    LDA #(CLOUD_RIGHT_END - CLOUD_RIGHT_START) ; Max random cloud parts
+    LDA #(CLOUD_RIGHT_END - CLOUD_RIGHT_START + 1) ; Max random cloud parts
     STA operation_address                      ; Store in operation address
     JSR prng                                   ; Generate random number
     JSR divide                                 ; Fetch modulo for cloud part
