@@ -34,6 +34,7 @@ DINO_HEAD_DEAD = 10
 DINO_CROUCH_TAIL = 37
 DINO_CROUCH_BACK = 38
 DINO_CROUCH_HEAD = 39
+DINO_CROUCH_TAIL_VARIANT = 40
 DINO_CROUCH_BACK_VARIANT = 41 ; For the walking animation
 
 DINO_POS_X = 50
@@ -269,8 +270,20 @@ reset_vel:
 	LDA dino_py 	; Get the dino y position
 	STA oam_py 		; Store desired y position
 
-	LDA #DINO_CROUCH_TAIL	; Select the tail of the dino head
-	JSR draw_sprite 		; Draw the back of the dino head
+	LDA dino_state  ; Get the dino state for the legs
+	AND #DINO_LEG_VARIANT ; Check against the leg variant
+	CMP #0				 ; Check if the legs were set
+	BNE leg_21			 ; Jump to leg 2 if they were were set
+
+	LDA #DINO_CROUCH_TAIL	; Select the dino legs to draw
+	JMP draw1				; Jump to the drawing logic
+
+	leg_21:
+		LDA #DINO_CROUCH_TAIL_VARIANT	; Select the second dino back
+
+	draw1:
+		JSR draw_sprite 
+
 
 	LDA oam_px		; Get desired x position
 	CLC				; Clear carry
