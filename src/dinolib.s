@@ -33,6 +33,8 @@ dino_state: .res 1 ; The current state of the dino
 dino_vy: .res 1    ; The y velocity of the dino
 dino_py: .res 1	   ; The y position of the dino
 
+dino_steps: .res 1 ; The amount of steps the dino has taken
+
 .segment "CODE"
 
 .proc dino_start
@@ -60,13 +62,21 @@ dino_py: .res 1	   ; The y position of the dino
 
 	TYA 			; Tranfer remainder to A
 	CMP #0 	    	; If game ticks devided by 20 has a remainder of 0 
-	BNE skip_change_legs ; Jump to not change legs
+	BNE skip_step   ; Jump to not change legs
 
 	LDA dino_state 		 ; Get the current dino state
 	EOR #DINO_LEG_VARIANT ; Xor with the dino leg variant to toggle
 	STA dino_state       ; Update state with new value
 
-skip_change_legs:
+	INC dino_steps ; Increment the steps the dino has taken
+
+	LDA dino_steps  ; Load the dino steps
+	CMP #$FF        ; Check if it's maax
+	BNE skip_step   ; Skip incrementing the speed otherwise
+
+	INC game_speed  ; Increment the game speed
+
+skip_step:
 	LDA dino_state 	   ; Get the current dino state
 	AND #DINO_CROUCH   ; Check if the dino is crouching
 	BNE draw_crouched  ; If the dino is crouching

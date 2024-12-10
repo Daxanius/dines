@@ -126,7 +126,7 @@ irq:
         INX
         BNE clear_ram
 
-    LDA #1          ; Set the game speed to 1 because 0 means no movement
+    LDA #2          ; Set the game speed to 2 
     STA game_speed  ; Reset the game speed
 
     ; Reset x and A
@@ -236,17 +236,6 @@ skip_scroll:
     JSR dino_start             ; Jump to the setup function for the main game
     JSR display_title_screen   ; Display the title screen
 
-
-    ; These settings were getting in the way.. I don't even know what  they were supposed to do
-    ; Thanks for being very clear book... Commenting them out fixed dino drawing
-    ; Someone please figure this out for me
-    ;LDA #VBLANK_NMI|BG_0000|OBJ_1000 ; Combine some PPU control settings into a composite byte 
-    ; STA ppu_ctl                      ; Store the settings into PPU CTL
-
-    ;LDA #BG_ON|OBJ_ON                ; Combine PPU mask settings into a composite byte
-    ; STA ppu_mask                     ; Store the PPU mask settings
-    ; JSR ppu_update                   ; Update the PPU
-
     ; The title loop simply keeps looping until any input
     titleloop:
         m_inc_16_i seed  ; Increment the seed while the user is in the titlescreen, gives a lil pseudo random seed
@@ -270,10 +259,9 @@ skip_scroll:
         JSR gamepad_poll    ; Fetch the user input
         JSR dino_update     ; Jumps to the main dines updating loop
         JSR obstacle_update ; Jumps to the cactus updating loop
-        CLC
-        m_adc_16_i distance,game_speed ;increments distance
-        LDA game_speed
-        JSR add_score 
+
+        LDA #1          ; Always add 1 to the score, no matter the speed
+        JSR add_score   ; Increment the score
 
         ; Ensure our changes are rendered
         LDA #1        ; Store true in A
@@ -285,7 +273,7 @@ skip_scroll:
 
         BNE mainloop    ; Loop again if the dino is shown to be alive
 
-        JSR display_gameover_screen
+    JSR display_gameover_screen
 
     game_over_loop:
         JSR gamepad_poll        ; Fetch the user input

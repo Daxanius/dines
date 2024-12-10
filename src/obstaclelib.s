@@ -1,8 +1,7 @@
 .segment "ZEROPAGE" ; Variables
 
-SPOT_DISTANCE           = 8     ; distance between every possible cactus spot (multiple of 2 for easier use)
-MIN_SPOTS_BETWEEN_OBSTACLES = 5     ; minimum spots between cacti spawns (multiply by spot distance for minimum distance between cacti)
-MAX_SPOTS_BETWEEN_OBSTACLES = 10    ; ^^but maximum
+MIN_SPOTS_BETWEEN_OBSTACLES = 70     ; minimum spots between cacti spawns (multiply by spot distance for minimum distance between cacti)
+MAX_SPOTS_BETWEEN_OBSTACLES = 150    ; ^^but maximum
 BIRD_RARITY = 5                     ; chance of spawning a flying dino instead of cactus => 1/BIRD_RARITY
 
 ; Obstacle start positions
@@ -39,7 +38,6 @@ CACTUS_SMALL_END    = 16
 
 BIRD_FLAP_TICKS = 10
 
-distance: .res 2 ;will be used for highscore and cactus spawning
 spotsUntilObstacle: .res 1 
 
 .segment "CODE"
@@ -49,39 +47,30 @@ spotsUntilObstacle: .res 1
     LDA game_speed   ; Fetch the game speed
     CLC              ; Prepare for addiction
     ADC ppu_scroll_x ; Add ppu scroll x to it
-    ADC #1           ; Add an extra 1 to ppu scroll to make the speeds match
     STA ppu_scroll_x ; Store it in ppu scroll x
 
     JSR segment_update                          ; Update all existing cactus segments
 
-    LDA #SPOT_DISTANCE                          ;
-    STA operation_address                       ; We will divide A by operation address
-
-    LDA distance+1                              ; Load the low byte of distance
-    JSR divide                                  ; Divide A by operation address
-
-    CPY #0                                      ; If distance(low byte) divided by SPOT_DISTANCE does not have a remainder of 0 
-    BNE skip_generate_cactus                    ; Skip the generation of a cactus
-
-    DEC spotsUntilObstacle                       ; Decrement spotsUntilCactus
-    BPL skip_generate_cactus                    ; if result is positive,skip generation
+    LDA spotsUntilObstacle                      ; Get spots until obstacle
+    CLC                                         ; Clear carry for subtraction
+    SBC game_speed                              ; Subtract game speed from it because it has to account for faster cacti
+    STA spotsUntilObstacle                      ; Store it again
+    BCS skip_generate_cactus                    ; if result is positive,skip generation
     ; else (0 or < 0) generate cactus
 
     ;generate position of next cactus
     LDA #(MAX_SPOTS_BETWEEN_OBSTACLES - MIN_SPOTS_BETWEEN_OBSTACLES) ; Load the difference between max and min
     STA operation_address                                    ; Store in operation address for division
     JSR prng                                                 ; generate random number in A
-    TAX                                                      ; store random number for deciding between dino and cactus
     JSR divide                                               ; store random % (Max - Min) i n Y
     TYA                                                      ; transfer randomized offset to A
     CLC                                                      ; clear carry
     ADC #MIN_SPOTS_BETWEEN_OBSTACLES                         ; add min so range goes from [0-offset] to [min-max]
     STA spotsUntilObstacle                                   ; store for later use
 
-
     LDA #BIRD_RARITY                                         ; load bird rarity
     STA operation_address                                    ; store to be used as divisor 
-    TXA                                                      ; retreive random number generated earlier
+    JSR prng                                                 ; generate random number in A
     JSR divide                                               ; divide, remainder in Y
     CPY #0                                                   ; if remainder == 0
     BEQ do_generate_bird                                     ; generate flying dino
@@ -150,10 +139,12 @@ spotsUntilObstacle: .res 1
             JMP done_looping             ; Otherwise return from this subroutine
 
     continue:
-        ; Update the cactus position
+        ; Update the segment position
         LDA oam+3, x   ; Get the x position of the cactus
         CLC
         SBC game_speed ; Subtract the game speed from the X position
+        CLC
+        ADC #1         ; Add 1 to position for subtraction wonkiness
         STA oam+3, x   ; Store a back into the OAM with the new position
 
         ; Increment the loop
@@ -201,9 +192,9 @@ spotsUntilObstacle: .res 1
 ; Deletes the segment at register x
 .proc check_and_delete_segment
     start:
-        LDA oam+3, x  ; Get the x position of the cactus
-        CMP #0        ; Compare it against 0
-        BNE skip      ; Skip to the end if the cactus part has not hit 0 yet
+        LDA oam+3, x    ; Get the x position of the cactus
+        CMP game_speed  ; Compare against the game speed and check if it underflows, if it does, it can be removed
+        BCS skip        ; Skip to the end if the cactus part has not undeflowed
 
         ; Reset all oam parts
         LDA #0
