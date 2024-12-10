@@ -58,6 +58,9 @@ cool_text:
 game_over_text:
     .byte "GAME OVER", 0
 
+restart_text:
+    .byte "PRESS START TO RESTART", 0
+
 title_colors:
     .byte %00000101,%00000101,%00000101,%00000101
     .byte %00000101,%00000101,%00000101,%00000101
@@ -252,8 +255,13 @@ irq:
     JSR ppu_off            ; Disable the PPU
 
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
-    m_assign_16i operation_address, game_over_text                  ; Write our title to text address
+    m_assign_16i operation_address, game_over_text         ; Write our title to text address
     JSR write_text                                         ; Writes the text in operation_address to the nametable
+
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 14 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
+    m_assign_16i operation_address, restart_text            ; Write our title to text address
+    JSR write_text                                         ; Writes the text in operation_address to the nametable
+
 
     m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the vram address to the start of the attribute table
     m_assign_16i paddr, title_colors                   ; Moves title_colors into paddr
