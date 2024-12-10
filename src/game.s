@@ -169,15 +169,27 @@ irq:
     JSR display_score
 
 @skip:
+    LDA ppu_ctl              ; Get the PPU control settings
+    EOR #2                   ; Switch between nametables every frame
+    STA ppu_ctl              ; Stored the switched PPU control setting
+    STA PPU_CONTROL          ; Send the PPU control settings to the PPU
+    
+    ; Reset ppu scroll
     LDA #0                  ; Reset A
+    STA PPU_SCROLL_ADDRESS  ; Store 0 in scroll address
 
-    LDA ppu_scroll_x         ; Get the ppu scroll set variable
-    STA PPU_SCROLL_ADDRESS   ; Store ppu scroll x to ppu scroll address
+    LDA ppu_ctl
+    AND #2
+    CMP #2                  ; Check if we are drawing the background
+    BNE skip_scroll         ; Skip scoll if we are on the second nametable
+
+    LDA PPU_STATUS          ; Clear w (write latch) of the PPU, which keeps track of which byte is being written
+    LDA ppu_scroll_x        ; Get the ppu scroll set variable
+    STA PPU_SCROLL_ADDRESS  ; Store ppu scroll x to ppu scroll address
+
+skip_scroll:
     LDA #0                   ; Reset ppu scroll y
     STA PPU_SCROLL_ADDRESS   ; Store ppu scroll 0 into y
-
-    LDA ppu_ctl              ; Get the PPU control settings
-    STA PPU_CONTROL          ; Send the PPU control settings to the PPU
 
     LDA ppu_mask             ; Get PPU_MASK info
     STA PPU_MASK             ; Send the mask to the PPU
@@ -260,9 +272,6 @@ irq:
 
         JSR display_gameover_screen
 
-    LDA #0
-    STA ppu_scroll_x
-
     game_over_loop:
         JSR gamepad_poll        ; Fetch the user input
         LDA gamepad             ; Put the user input into A
@@ -338,7 +347,7 @@ irq:
     JSR ppu_off
     JSR clear_nametable
 
-    m_vram_set_address (NAME_TABLE_0_ADDRESS + (180 + 3) * 32)
+    m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
 
     LDY #0
     loop_ground_nt1:
