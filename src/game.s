@@ -52,8 +52,8 @@ default_palette:
 FLOOR_TILES_START = 34
 FLOOR_TILES_END = 36
 
-CLOUD_MIN_HEIGHT = (FLOOR_HEIGHT - 20)
-CLOUD_MAX_HEIGHT = 16
+CLOUD_MIN_HEIGHT = 16
+CLOUD_MAX_HEIGHT = (FLOOR_HEIGHT - 20)
 
 ; Cloud tile info
 CLOUD_LEFT_START = 24
@@ -366,7 +366,7 @@ skip_scroll:
     m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
 
     LDY #0
-    loop_ground_nt1:
+    loop_ground:
         TYA
         PHA
 
@@ -385,10 +385,9 @@ skip_scroll:
 
         INY 
         CPY #32
-        BNE loop_ground_nt1
+        BNE loop_ground
 
     m_vram_set_address(NAME_TABLE_0_ADDRESS + 20 )
-
 
     LDA #83
     STA PPU_VRAM_IO
@@ -409,10 +408,26 @@ skip_scroll:
 
 ; Creates a cloud at a random position
 .proc create_cloud
-    LDA #(32 - 2)         ; Max width for tiles minus cloud size
-    STA operation_address ; Store it for modulo
+    ; Left cloud part generation
+    LDA #(CLOUD_LEFT_END - CLOUD_LEFT_START) ; Max random cloud parts
+    STA operation_address                    ; Store in operation address
+    JSR prng                                 ; Generate random number
+    JSR divide                               ; Fetch modulo for cloud part
 
-    JSR prng    ; Generate random number for y position
-    JSR divide  ; Divide A by operation_address
+    TYA                                      ; Move modulo into A
+    ADC #CLOUD_LEFT_START                    ; Get cloud start tile
+
+    STA PPU_VRAM_IO ; Store left cloud part on nametable
+
+    ; Right cloud part generation
+    LDA #(CLOUD_RIGHT_END - CLOUD_RIGHT_START) ; Max random cloud parts
+    STA operation_address                      ; Store in operation address
+    JSR prng                                   ; Generate random number
+    JSR divide                                 ; Fetch modulo for cloud part
+
+    TYA                                      ; Move modulo into A
+    ADC #CLOUD_RIGHT_START                   ; Get cloud start tile
+
+    STA PPU_VRAM_IO ; Store right cloud part on nametable
     RTS
 .endproc

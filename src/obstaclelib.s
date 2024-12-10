@@ -350,13 +350,9 @@ draw_flying_dino:
 
 ; Generates a random cactus and puts it in the OAM
 .proc generate_cactus
-    LDA #2                  ; Load the dividor in A (so modulo returns 0 or 1)
-    STA operation_address   ; We will divide A by operation address
-
     JSR prng                ; Generate a random number and store it in A
-    JSR divide              ; Divide A by operation address
+    AND #1                  ; Check least significant bit
 
-    CPY #1                  ; If random number = 1 we generate a big cactus (else if = 0 we generate a small cactus)
     BEQ big_cactus          ; Branch to label "big_cactus" if A = 1
     JSR make_small_cactus   ; If it didn't branch A = 0 which means we should generate a small cactus
     RTS
