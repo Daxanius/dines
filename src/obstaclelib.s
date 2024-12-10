@@ -53,6 +53,8 @@ spotsUntilObstacle: .res 1
 
     LDA spotsUntilObstacle                      ; Get spots until obstacle
     CLC                                         ; Clear carry for subtraction
+    ADC #1                                      ; Add 1 for subtraction correction
+    CLC
     SBC game_speed                              ; Subtract game speed from it because it has to account for faster cacti
     STA spotsUntilObstacle                      ; Store it again
     BCS skip_generate_cactus                    ; if result is positive,skip generation
@@ -193,6 +195,8 @@ spotsUntilObstacle: .res 1
 .proc check_and_delete_segment
     start:
         LDA oam+3, x    ; Get the x position of the cactus
+        CLC
+        SBC #1
         CMP game_speed  ; Compare against the game speed and check if it underflows, if it does, it can be removed
         BCS skip        ; Skip to the end if the cactus part has not undeflowed
 
