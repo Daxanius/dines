@@ -133,7 +133,7 @@ last_oam_idx: .res 1 ; Used to optimize the cactus delete function
         BEQ done_looping ; Stop looping if we hit an empty sprite
 
         PLA              ; Get the flap remainder from the stack
-        CMP #0           ; Check if the remainder is 0
+        CMP #1           ; Check if the remainder is 0
         BNE skip_bird    ; If it is not 0, we skip updating the bird
 
         TAY             ; Move the remainder into Y because A will be used
