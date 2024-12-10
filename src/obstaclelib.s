@@ -1,8 +1,5 @@
 .segment "ZEROPAGE" ; Variables
 
-distance: .res 2 ;will be used for highscore and cactus spawning
-bird_state: .res 1 ; current bird state
-
 SPOT_DISTANCE           = 8     ; distance between every possible cactus spot (multiple of 2 for easier use)
 MIN_SPOTS_BETWEEN_OBSTACLES = 5     ; minimum spots between cacti spawns (multiply by spot distance for minimum distance between cacti)
 MAX_SPOTS_BETWEEN_OBSTACLES = 10    ; ^^but maximum
@@ -42,9 +39,19 @@ CACTUS_SMALL_END    = 16
 
 BIRD_FLAP_TICKS = 10
 
+
+distance: .res 2 ;will be used for highscore and cactus spawning
+bird_state: .res 1 ; current bird state
 spotsUntilObstacle: .res 1 
+last_oam_idx: .res 1 ; Used to optimize the cactus delete function
 
 .segment "CODE"
+
+.proc obstacle_start 
+    LDA #0  ; Put 0 in a
+    STA last_oam_idx ; Reset the last oam index with 0
+    RTS
+.endproc
 
 .proc obstacle_update
     JSR segment_update                          ; Update all existing cactus segments
@@ -155,12 +162,15 @@ spotsUntilObstacle: .res 1
         TXA         ; Move x into a
         CLC
         ADC #4      ; Increment A by 4
-        STA oam_idx ; Store the offset 
+        STA oam_idx ; Store the offset
         
         BVC loop    ; Continue looping if we did not overflow
         
     done_looping:
         PLA             ; Clean the remainder from the stack, it is no longer needed
+
+        LDA oam_idx
+        STA last_oam_idx
         RTS
 .endproc
 
@@ -204,8 +214,9 @@ spotsUntilObstacle: .res 1
         STA oam+2, x
         STA oam+3, x
 
-        CPX #(255-3)  ; Check if we are at the last element
-        BEQ skip      ; Skip if we are at the last element
+        CPX last_oam_idx  ; Check if we are at the last element
+        BEQ skip          ; Skip if we are at the last element
+        BPL skip          ; Skip if we are above the last element
 
     shift_loop:
         ; Move the next sprite data back to the current slot
@@ -223,8 +234,8 @@ spotsUntilObstacle: .res 1
         INX
         INX
         INX
-        CPX #(255-3)       ; Have we reached the end of the OAM?
-        BNE shift_loop     ; If not, continue looping
+        CPX last_oam_idx   ; Have we reached the last element?
+        BMI shift_loop     ; If not, continue looping
 
     ; Mark the last sprite slot as unused (optional cleanup)
     LDA #0

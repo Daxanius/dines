@@ -207,7 +207,8 @@ irq:
         BEQ titleloop    ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
     
     JSR display_game_screen ; Finally display the game screen after we are done with the title
-    JSR dino_start             ; Jump to the setup function for the main game
+    JSR dino_start          ; Jump to the setup function for the main game
+    JSR obstacle_start      ; Jump to the obstacle setup function
 
     ; The main game loop
     mainloop:
