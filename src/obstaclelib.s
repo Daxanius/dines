@@ -196,7 +196,7 @@ spotsUntilObstacle: .res 1
     start:
         LDA oam+3, x    ; Get the x position of the cactus
         CLC
-        SBC #1
+        SBC #2
         CMP game_speed  ; Compare against the game speed and check if it underflows, if it does, it can be removed
         BCS skip        ; Skip to the end if the cactus part has not undeflowed
 
