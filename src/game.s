@@ -246,6 +246,9 @@ irq:
 
         JSR display_gameover_screen
 
+    LDA #0
+    STA ppu_scroll_x
+
     game_over_loop:
         JSR gamepad_poll        ; Fetch the user input
         LDA gamepad             ; Put the user input into A
@@ -265,7 +268,7 @@ irq:
 
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 14 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
     m_assign_16i operation_address, restart_text            ; Write our title to text address
-    JSR write_text                                         ; Writes the text in operation_address to the nametable
+    JSR write_text                                          ; Writes the text in operation_address to the nametable
 
 
     m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the vram address to the start of the attribute table
@@ -344,30 +347,6 @@ irq:
         INY 
         CPY #32
         BNE loop_ground_nt1
-
-    m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
-
-    LDY #0
-    loop_ground_nt2:
-        TYA
-        PHA
-
-        LDA #(FLOOR_TILES_END - FLOOR_TILES_START)
-        STA operation_address
-        JSR prng 
-        JSR divide
-        TYA 
-        CLC
-        ADC #FLOOR_TILES_START
-
-        STA PPU_VRAM_IO
-
-        PLA
-        TAY
-
-        INY 
-        CPY #32
-        BNE loop_ground_nt2
 
     JSR ppu_update
     RTS
