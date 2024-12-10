@@ -72,6 +72,8 @@ nmi_ready: .res 1
 ppu_ctl: .res 1
 ppu_mask: .res 1
 
+ppu_scroll_x: .res 1
+
 gamepad: .res 1
 
 operation_address: .res 2 ; The address used for multiple functions such as for text drawing, multiplication and division

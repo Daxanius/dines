@@ -54,6 +54,13 @@ last_oam_idx: .res 1 ; Used to optimize the cactus delete function
 .endproc
 
 .proc obstacle_update
+    ; Update ppu scroll
+    LDA game_speed   ; Fetch the game speed
+    CLC              ; Prepare for addiction
+    ADC ppu_scroll_x ; Add ppu scroll x to it
+    ADC #1           ; Add an extra 1 to ppu scroll to make the speeds match
+    STA ppu_scroll_x ; Store it in ppu scroll x
+
     JSR segment_update                          ; Update all existing cactus segments
 
     LDA #SPOT_DISTANCE                          ;

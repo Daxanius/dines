@@ -46,6 +46,9 @@ default_palette:
 ; Main application entry point for startup/reset
 ;*****************************************************************
 .segment "CODE"
+FLOOR_TILES_START = 34
+FLOOR_TILES_END = 36
+
 title_text:
     .byte "D I N E S",0
 
@@ -69,6 +72,7 @@ irq:
     STA PPU_CONTROL ; Store 0 to PPU to reset it
     STA PPU_MASK    ; Reset the PPU MASK
     STA APU_DM_CONTROL ; Reset APU control
+    STA ppu_scroll_x ; Reset PPU scroll
 
     LDA #$40        ; Store 40 to reset the joypad
     STA JOYPAD2     ; Reset the joypad
@@ -151,9 +155,10 @@ irq:
         CPX #32         ; Check if X has not hit 32 yet
         BCC @loop       ; Continue looping as long as we haven't gone through the palette yet
 
-    LDA #0                  ; Reset A
+    LDA ppu_scroll_x         ; Get the ppu scroll set variable
+    STA PPU_SCROLL_ADDRESS   ; Store ppu scroll x to ppu scroll address
 
-    STA PPU_SCROLL_ADDRESS   ; Reset the scroll address on th X axis
+    LDA #0                   ; We won't use the y position of ppu scroll, just set it to 0
     STA PPU_SCROLL_ADDRESS   ; Reset the scroll adress on the Y axis
 
     LDA ppu_ctl              ; Get the PPU control settings
@@ -217,8 +222,8 @@ irq:
         CMP #0        ; Check if it's done rendering the last frame
         BNE mainloop  ; Jump back to the start to wait until the frame has been drawn
 
-        JSR gamepad_poll ; Fetch the user input
-        JSR dino_update ; Jumps to the main dines updating loop
+        JSR gamepad_poll    ; Fetch the user input
+        JSR dino_update     ; Jumps to the main dines updating loop
         JSR obstacle_update ; Jumps to the cactus updating loop
         CLC
         m_adc_16_i distance,game_speed ;increments distance
@@ -245,11 +250,11 @@ irq:
     JSR clear_nametable    ; Clear the background
 
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
-    m_assign_16i operation_address, title_text                  ; Write our title to text address
+    m_assign_16i operation_address, title_text             ; Write our title to text address
     JSR write_text                                         ; Writes the text in operation_address to the nametable
 
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 20 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
-    m_assign_16i operation_address, press_play_text              ; Write our ppress play text to text address
+    m_assign_16i operation_address, press_play_text         ; Write our ppress play text to text address
     JSR write_text                                          ; Writes the text in operation_address to the nametable
 
     m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the vram address to the start of the attribute table
@@ -271,10 +276,59 @@ irq:
     RTS
 .endproc
 
-; Literally just clears the screen for the game
+; Creates a procedural background screen for the game in both nametables
 .proc display_game_screen
     JSR ppu_off
     JSR clear_nametable
+
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + (180 + 3) * 32)
+
+    LDY #0
+    loop_ground_nt1:
+        TYA
+        PHA
+
+        LDA #(FLOOR_TILES_END - FLOOR_TILES_START)
+        STA operation_address
+        JSR prng 
+        JSR divide
+        TYA 
+        CLC
+        ADC #FLOOR_TILES_START
+
+        STA PPU_VRAM_IO
+
+        PLA
+        TAY
+
+        INY 
+        CPY #32
+        BNE loop_ground_nt1
+
+    m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
+
+    LDY #0
+    loop_ground_nt2:
+        TYA
+        PHA
+
+        LDA #(FLOOR_TILES_END - FLOOR_TILES_START)
+        STA operation_address
+        JSR prng 
+        JSR divide
+        TYA 
+        CLC
+        ADC #FLOOR_TILES_START
+
+        STA PPU_VRAM_IO
+
+        PLA
+        TAY
+
+        INY 
+        CPY #32
+        BNE loop_ground_nt2
+
     JSR ppu_update
     RTS
 .endproc

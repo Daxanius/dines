@@ -37,7 +37,7 @@ DINO_CROUCH_HEAD = 39
 DINO_CROUCH_BACK_VARIANT = 41 ; For the walking animation
 
 DINO_POS_X = 50
-FLOOR_HEIGHT = 180 ; This value will also be used as the lowest possible value for the dino
+FLOOR_HEIGHT = 176 ; This value will also be used as the lowest possible value for the dino
 JUMP_FORCE = 6
 CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 
