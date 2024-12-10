@@ -45,12 +45,23 @@ default_palette:
     .byte $0F,$1B,$2B,$3B
     .byte $0F,$12,$22,$32
 
+; FLoor tile info
+FLOOR_TILES_START = 34
+FLOOR_TILES_END = 36
+
+CLOUD_MIN_HEIGHT = (FLOOR_HEIGHT - 20)
+CLOUD_MAX_HEIGHT = 16
+
+; Cloud tile info
+CLOUD_LEFT_START = 24
+CLOUD_LEFT_END = 25
+CLOUD_RIGHT_START = 26
+CLOUD_RIGHT_END = 27
+
 ;*****************************************************************
 ; Main application entry point for startup/reset
 ;*****************************************************************
 .segment "CODE"
-FLOOR_TILES_START = 34
-FLOOR_TILES_END = 36
 
 title_text:
     .byte "D I N E S",0
@@ -390,4 +401,9 @@ skip_scroll:
     JSR ppu_update
 
     RTS
+.endproc
+
+; Creates a cloud at a random position
+.proc create_cloud
+
 .endproc
