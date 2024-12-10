@@ -39,11 +39,8 @@ CACTUS_SMALL_END    = 16
 
 BIRD_FLAP_TICKS = 10
 
-
 distance: .res 2 ;will be used for highscore and cactus spawning
-bird_state: .res 1 ; current bird state
 spotsUntilObstacle: .res 1 
-last_oam_idx: .res 1 ; Used to optimize the cactus delete function
 
 .segment "CODE"
 

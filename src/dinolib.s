@@ -1,17 +1,4 @@
 .segment "ZEROPAGE" ; Variables
-
-game_ticks: .res 1 ; Game ticks to listen to, can be used to time some things, note that it overflows
-
-dino_state: .res 1 ; The current state of the dino
-dino_vy: .res 1    ; The y velocity of the dino
-dino_py: .res 1	   ; The y position of the dino
-
-game_speed: .res 1 ; The current speed of the game
-
-oam_idx: .res 1; The current index of the OAM we're drawing to
-oam_px: .res 1 ; Determines the x position the next sprite will be drawn to
-oam_py: .res 1 ; Determines the Y position the next sprite will be drawn to
-
 ; Some dino state flags that we can compare against
 DINO_CROUCH = 1
 DINO_JUMP = 2
@@ -42,19 +29,16 @@ FLOOR_HEIGHT = 176 ; This value will also be used as the lowest possible value f
 JUMP_FORCE = 6
 CEILING_HEIGHT = 12  ; The maximum height the dino can jump
 
+dino_state: .res 1 ; The current state of the dino
+dino_vy: .res 1    ; The y velocity of the dino
+dino_py: .res 1	   ; The y position of the dino
+
 .segment "CODE"
 
 .proc dino_start
 	LDA #FLOOR_HEIGHT ; The starting Y value for the DINO
 	STA dino_py       ; Store the y value in py
 
-	LDA #0	         ; Zero to reset the OAM index
-	STA oam_idx      ; Reset the oam index, I'm pretty sure the PPU has something for this..
-	STA dino_state   ; Reset the dino state
-	STA game_ticks	 ; Reset game_ticks
-
-	LDA #1
-	STA game_speed
 	RTS
 .endproc
 
@@ -315,27 +299,5 @@ reset_vel:
 	LDA #0
 	JSR draw_sprite
 
-	RTS
-.endproc
-
-; Draws a sprite with index of A to the OAM
-.proc draw_sprite
-	LDX oam_idx
-	STA oam+1, x ; Store the tile index in the oam
-
-	LDA oam_py   ; Load the desired y position
-	STA oam, x   ; Store the desired y position in the oam
-
-	LDA oam_px	  ; Load the desired x position
-	sta oam+3, x  ; Store the x position in the oam
-
-	LDA #0		  ; Sprite OAM properties, no palette applies here
-	STA oam+2, x  ; Store properties to OAM
-
-	TXA			 ; Puts the oam index in A
-
-	CLC
-	ADC #4		; Adds 4 to the OAM index
-	STA oam_idx ; Stores A back into oam idx after "incrementing" it
 	RTS
 .endproc

@@ -17,7 +17,7 @@
 ; Increments a 16 bit value
 .macro m_inc_16_i address
     INC address+1  ; Increment the first part of the value
-    BVC @done      ; Branch if the first part did not overflow
+    BNE @done      ; Branch if the first part did not overflow
     INC address    ; Increment the second part of the value
 
 @done:  ; A little label to jump early in the macro
@@ -28,7 +28,7 @@
     LDA address+1   ; load low order byte
     ADC address2    ; add the 2 8 bit values
     STA address+1   ; store low order byte
-    BVC @done       ; end if no overflow
+    BNE @done       ; end if no overflow
     INC address     ; increment high order byte (if overflow)
 @done: 
 .endmacro

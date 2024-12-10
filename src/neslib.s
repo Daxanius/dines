@@ -76,11 +76,14 @@ ppu_scroll_x: .res 1
 
 gamepad: .res 1
 
+last_oam_idx: .res 1 ; Used to optimize the cactus delete function
+oam_idx: .res 1 ; The current index of the OAM we're drawing to
+oam_px: .res 1  ; Determines the x position the next sprite will be drawn to
+oam_py: .res 1  ; Determines the Y position the next sprite will be drawn to
+
 operation_address: .res 2 ; The address used for multiple functions such as for text drawing, multiplication and division
-
 seed: .res 2 ; Defined a seed variable
-
-temp: .res 5
+temp: .res 6
 
 .include "macros.s"
 
@@ -439,4 +442,26 @@ no_overlap:
     ; No collision
     LDA #0           ; Set A to 0 to indicate no collision
     RTS
+.endproc
+
+; Draws a sprite with index of A to the OAM
+.proc draw_sprite
+	LDX oam_idx
+	STA oam+1, x ; Store the tile index in the oam
+
+	LDA oam_py   ; Load the desired y position
+	STA oam, x   ; Store the desired y position in the oam
+
+	LDA oam_px	  ; Load the desired x position
+	sta oam+3, x  ; Store the x position in the oam
+
+	LDA #0		  ; Sprite OAM properties, no palette applies here
+	STA oam+2, x  ; Store properties to OAM
+
+	TXA			 ; Puts the oam index in A
+
+	CLC
+	ADC #4		; Adds 4 to the OAM index
+	STA oam_idx ; Stores A back into oam idx after "incrementing" it
+	RTS
 .endproc

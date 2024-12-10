@@ -21,6 +21,9 @@ INES_SRAM = 0 ; Battery backed sram
 .segment "ZEROPAGE" ; Variables
 paddr: .res 2
 
+game_ticks: .res 1 ; Game ticks to listen to, can be used to time some things, note that it overflows
+game_speed: .res 1 ; The current speed of the game
+
 score: .res 3 ;3 bytes for score, each byte storing 2 digits
 displayScore: .res 1
 
@@ -92,7 +95,6 @@ irq:
     STA PPU_CONTROL ; Store 0 to PPU to reset it
     STA PPU_MASK    ; Reset the PPU MASK
     STA APU_DM_CONTROL ; Reset APU control
-    STA ppu_scroll_x ; Reset PPU scroll
 
     LDA #$40        ; Store 40 to reset the joypad
     STA JOYPAD2     ; Reset the joypad
@@ -123,6 +125,9 @@ irq:
         STA $0700,x
         INX
         BNE clear_ram
+
+    LDA #1          ; Set the game speed to 1 because 0 means no movement
+    STA game_speed  ; Reset the game speed
 
     ; Reset x and A
     LDA #255
@@ -405,5 +410,10 @@ skip_scroll:
 
 ; Creates a cloud at a random position
 .proc create_cloud
+    LDA #(32 - 2)         ; Max width for tiles minus cloud size
+    STA operation_address ; Store it for modulo
 
+    JSR prng    ; Generate random number for y position
+    JSR divide  ; Divide A by operation_address
+    RTS
 .endproc
