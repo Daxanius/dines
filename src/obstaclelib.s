@@ -82,8 +82,6 @@ spotsUntilObstacle: .res 1
 
     do_generate_bird:
     JSR generate_bird                                        ; go to generate flying dino function
-    RTS                                                      ; return 
-
 
     skip_generate_cactus:
         RTS                                                  ; Just don't do anything if we don't need to generate a new cactus
@@ -162,6 +160,7 @@ spotsUntilObstacle: .res 1
 
         LDA oam_idx
         STA last_oam_idx
+        INC last_oam_idx ; One higher than the oam index
         RTS
 .endproc
 
@@ -173,6 +172,7 @@ spotsUntilObstacle: .res 1
         BPL end  ; No collision detected
 
         JSR check_collision ; Check for collision
+        LDA #0
 
         ; Increment y 4 times to go to the next OAM part
         INY
@@ -194,12 +194,17 @@ spotsUntilObstacle: .res 1
 ; Deletes the segment at register x
 .proc check_and_delete_segment
     start:
+        LDA oam+1, x    ; Get the tile of the cactus
+        CMP #0          ; If it is empty
+        BEQ skip_position_check        ; Skip the position check
+
         LDA oam+3, x    ; Get the x position of the cactus
         CLC
         SBC #2
         CMP game_speed  ; Compare against the game speed and check if it underflows, if it does, it can be removed
         BCS skip        ; Skip to the end if the cactus part has not undeflowed
 
+    skip_position_check:
         ; Reset all oam parts
         LDA #0
         STA oam, x 
@@ -207,9 +212,12 @@ spotsUntilObstacle: .res 1
         STA oam+2, x
         STA oam+3, x
 
-        CPX last_oam_idx  ; Check if we are at the last element
-        BEQ skip          ; Skip if we are at the last element
-        BPL skip          ; Skip if we are above the last element
+        TXA
+        CLC
+        SBC #2            ; Decrement it by 2 for a bug?
+        CMP last_oam_idx  ; Check if we are at the last element
+        ;BEQ skip         ; Skip if we are at the last element
+        BPL end          ; Skip if we are above the last element
 
     shift_loop:
         ; Move the next sprite data back to the current slot
@@ -241,6 +249,8 @@ spotsUntilObstacle: .res 1
     LDX oam_idx
     JMP start
 
+    end:
+        DEC oam_idx
     skip:
         RTS
 .endproc
