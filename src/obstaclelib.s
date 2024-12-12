@@ -172,7 +172,6 @@ spotsUntilObstacle: .res 1
         BPL end  ; No collision detected
 
         JSR check_collision ; Check for collision
-        LDA #0
 
         ; Increment y 4 times to go to the next OAM part
         INY
