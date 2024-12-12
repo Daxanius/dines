@@ -15,7 +15,7 @@ DINO_HEAD = 2
 DINO_ARMS = 6
 DINO_LEGS1 = 5
 DINO_LEGS2 = 7
-DINO_HEAD_DEAD = 10
+DINO_HEAD_DEAD = 9
 
 ; Dino crouched texture parts
 DINO_CROUCH_TAIL = 37
@@ -225,8 +225,19 @@ reset_vel:
 	ADC #8			; Add 8 to it
 	STA oam_px 		; Store desired x position
 
+	LDA dino_state  ; Get the dino state
+	AND #DINO_DEAD  ; Get the dino dead value
+	CMP #DINO_DEAD  ; Check the dino dead value
+	BEQ draw_dead_head ; Draw the dead head if the dino is dead
+	
 	LDA #DINO_HEAD	; Select the dino head to draw
-	JSR draw_sprite ; Draw the dino head
+	JMP draw_head   ; Draw the head
+
+	draw_dead_head:
+		LDA #DINO_HEAD_DEAD
+
+	draw_head:
+		JSR draw_sprite ; Draw the dino head
 
 	LDA dino_py 	; Get the dino y position
 	STA oam_py		; Store it to OAM desired position
@@ -245,12 +256,12 @@ reset_vel:
 	BNE leg_2			 ; Jump to leg 2 if they were were set
 
 	LDA #DINO_LEGS1	; Select the dino legs to draw
-	JMP draw		; Jump to the drawing logic
+	JMP draw_legs	; Jump to the drawing logic
 
 	leg_2:
 		LDA #DINO_LEGS2	; Select the second dino legs
 
-	draw:
+	draw_legs:
 		JSR draw_sprite ; Draw the dino legs
 	RTS
 .endproc

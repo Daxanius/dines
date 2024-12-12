@@ -273,6 +273,9 @@ skip_scroll:
 
         BNE mainloop    ; Loop again if the dino is shown to be alive
 
+    LDA #0
+    STA oam_idx
+    JSR draw_dino       ; Draw the dino
     JSR display_gameover_screen
 
     game_over_loop:
