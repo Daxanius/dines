@@ -18,6 +18,30 @@ INES_SRAM = 0 ; Battery backed sram
 .word handle_reset
 .word irq
 
+.segment "CODE"
+; Famistudio config
+FAMISTUDIO_CFG_EXTERNAL       = 1
+FAMISTUDIO_CFG_DPCM_SUPPORT   = 1
+FAMISTUDIO_CFG_SFX_SUPPORT    = 1
+FAMISTUDIO_CFG_SFX_STREAMS    = 1
+FAMISTUDIO_CFG_EQUALIZER      = 1
+FAMISTUDIO_USE_VOLUME_TRACK   = 1
+FAMISTUDIO_USE_PITCH_TRACK    = 1
+FAMISTUDIO_USE_SLIDE_NOTES    = 1
+FAMISTUDIO_USE_VIBRATO        = 1
+FAMISTUDIO_USE_ARPEGGIO       = 1
+FAMISTUDIO_CFG_SMOOTH_VIBRATO = 1
+FAMISTUDIO_USE_RELEASE_NOTES  = 1
+FAMISTUDIO_DPCM_OFF           = $e00
+
+; Assembler config for famistudio
+.define FAMISTUDIO_CA65_ZP_SEGMENT   ZEROPAGE
+.define FAMISTUDIO_CA65_RAM_SEGMENT  BSS
+.define FAMISTUDIO_CA65_CODE_SEGMENT CODE
+
+.include "famistudio_ca65.s"
+.include "sfx.s"
+
 .segment "ZEROPAGE" ; Variables
 paddr: .res 2
 
@@ -62,7 +86,6 @@ CLOUD_RIGHT_END = 27
 ; Main application entry point for startup/reset
 ;*****************************************************************
 .segment "CODE"
-
 title_text:
     .byte "D I N E S",0
 
@@ -210,6 +233,8 @@ skip_scroll:
     LDA ppu_mask             ; Get PPU_MASK info
     STA PPU_MASK             ; Send the mask to the PPU
 
+    JSR famistudio_update    ; Calls the famistudio play routine every frame
+
     LDX #0        ; Reset X
     STX nmi_ready ; Reset nmi_ready, resulting in the game to move on after the frame according to wait_frame
 
@@ -223,6 +248,16 @@ skip_scroll:
 .endproc
 
 .proc main
+    ; Initialize the sound engine
+    LDA #1
+    LDX #0
+    LDY #0
+    JSR famistudio_init
+
+    LDX #.lobyte(sounds)
+    LDY #.hibyte(sounds)
+    JSR famistudio_sfx_init
+
     LDX #0 ; Reset X for the loop
      
     ; Store the default palette into the palette area which will be put in the PPU on a vblank interrupt
@@ -276,6 +311,12 @@ skip_scroll:
     LDA #0
     STA oam_idx
     JSR draw_dino       ; Draw the dino
+
+    ; Play a game over sound lel
+    LDA #1
+    LDX #0
+    JSR play_sfx ; NO WAY
+
     JSR display_gameover_screen
 
     game_over_loop:

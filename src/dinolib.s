@@ -118,7 +118,6 @@ crouch_false:
 	STA dino_state
 
 end_check:
-
     LDA gamepad    ; Put the user input into Accumalator
     AND #PAD_A     ; Listen only for the A button
     BEQ check_hold ; if A isnt pressed check if A was being held down
@@ -158,6 +157,16 @@ jump:
     LDA #JUMP_FORCE
     STA dino_vy
 
+	LDA dino_state			; load state
+	AND #DINO_ON_GROUND		; Checks if the dino is on the ground
+	BEQ skip_sound			; If we are not on the ground anymore, skip plaing a sound
+
+	; Play jumping sound
+	LDA #0
+    LDX #0
+    JSR play_sfx
+
+skip_sound:
 	RTS
 .endproc
 

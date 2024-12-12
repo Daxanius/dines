@@ -66,7 +66,6 @@ NAME_TABLE_1_ADDRESS = $2800
 ATTRIBUTE_TABLE_1_ADDRESS = $2BC0
 
 .segment "ZEROPAGE"
-
 nmi_ready: .res 1
 
 ppu_ctl: .res 1
@@ -80,6 +79,8 @@ last_oam_idx: .res 1 ; Used to optimize the cactus delete function
 oam_idx: .res 1 ; The current index of the OAM we're drawing to
 oam_px: .res 1  ; Determines the x position the next sprite will be drawn to
 oam_py: .res 1  ; Determines the Y position the next sprite will be drawn to
+
+sfx_channel: .res 1 ; Sound effect channel to use
 
 operation_address: .res 2 ; The address used for multiple functions such as for text drawing, multiplication and division
 seed: .res 2 ; Defined a seed variable
@@ -464,4 +465,26 @@ no_overlap:
 	ADC #4		; Adds 4 to the OAM index
 	STA oam_idx ; Stores A back into oam idx after "incrementing" it
 	RTS
+.endproc
+
+; Play the sound effect, A = the sound effect to play, sfx_channel = sound effect channel to sue
+.proc play_sfx
+    STA operation_address ; Saves the sound effect buffer
+
+    ; Store values on the stack
+    TYA ; Grab Y
+    PHA ; Store on stack
+    TXA ; Grab X
+    PHA ; Store on skibidi
+
+    LDA operation_address ; Get the sound effect back
+    LDX sfx_channel       ; Get the channel
+    JSR famistudio_sfx_play ; Play the sound?? Is it that easy chat?
+
+    ; Get values back from the stack
+    PLA
+    TAX
+    PLA
+    TAY
+    RTS
 .endproc
