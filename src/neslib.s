@@ -445,7 +445,8 @@ no_overlap:
     RTS
 .endproc
 
-; Draws a sprite with index of A to the OAM
+; Draws a sprite with index of A to the OAM, optionally, the value in operation_address may be used for properties
+; Make sure to set it to 0 before drawing a sprite otherwise
 .proc draw_sprite
 	LDX oam_idx
 	STA oam+1, x ; Store the tile index in the oam
@@ -456,7 +457,7 @@ no_overlap:
 	LDA oam_px	  ; Load the desired x position
 	sta oam+3, x  ; Store the x position in the oam
 
-	LDA #0		  ; Sprite OAM properties, no palette applies here
+	LDA operation_address ; Sprite OAM properties, no palette applies here
 	STA oam+2, x  ; Store properties to OAM
 
 	TXA			 ; Puts the oam index in A

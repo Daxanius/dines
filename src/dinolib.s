@@ -71,10 +71,39 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 	INC dino_steps ; Increment the steps the dino has taken
 
 	LDA dino_steps  ; Load the dino steps
-	CMP #$FF        ; Check if it's maax
-	BNE skip_step   ; Skip incrementing the speed otherwise
+	CMP #$80        ; Check if it's half
+	BMI skip_step   ; Skip incrementing the speed otherwise
+
+	LDA #0
+	STA dino_steps
 
 	INC game_speed  ; Increment the game speed
+
+	LDA #(32 * PALLETE_COUNT) ; The maximum allowed palette index
+	STA operation_address ; Store it in operation address for division
+
+	; Change the palette
+	LDA palette_idx	; Load palette index
+	CLC			    ; Clear carry
+	ADC #32			; Add 32 to it
+	JSR divide 	    ; Divide to get the modulo
+
+	STY	palette_idx ; Store the new index
+
+	LDX palette_idx ; Get the palette index into X
+	LDY #0 ; Store 0 in Y
+	paletteloop:
+        LDA palettes, x ; Loop through the next palette palette
+        STA palette, y         ; Index with Y
+        INX                    ; Increment x
+		INY 				   ; Increment Y
+        CPY #32                ; Check if we aren't at the end of the palette
+        BCC paletteloop        ; Keeping copying over palette bytes if we aren't done yet
+
+	; Play coin sound
+	LDA #2
+    LDX #1 ; play on channel 1
+    JSR play_sfx
 
 skip_step:
 	LDA dino_state 	   ; Get the current dino state
@@ -218,6 +247,9 @@ reset_vel:
 ; Puts the crouching dino in the oam
 ; Refer to https://www.nesdev.org/wiki/PPU_OAM
 .proc draw_dino
+	LDA #0 			      ; Store 0 for the properties of all dino sprites
+	STA operation_address ; Put it in operation address, which draw_sprite will use
+
 	LDA #DINO_POS_X	; Get the dino x position
 	STA oam_px		; Store it to OAM desired position
 
@@ -278,6 +310,9 @@ reset_vel:
 ; Puts the dino in the OAM
 ; Refer to https://www.nesdev.org/wiki/PPU_OAM
 .proc draw_dino_crouched
+	LDA #0 			      ; Store 0 for the properties of all dino sprites
+	STA operation_address ; Put it in operation address, which draw_sprite will use
+
 	LDA #DINO_POS_X	; Get the dino x position
 	STA oam_px		; Store it to OAM desired position
 

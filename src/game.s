@@ -51,6 +51,8 @@ game_speed: .res 1 ; The current speed of the game
 score: .res 3 ;3 bytes for score, each byte storing 2 digits
 displayScore: .res 1
 
+palette_idx: .res 1 ; The current palette index
+
 .segment "OAM"
 oam: .res 256 ; Sprite OAM data
 
@@ -62,15 +64,47 @@ oam: .res 256 ; Sprite OAM data
 palette: .res 32 ; Current palette buffer
 
 .segment "RODATA"
-default_palette:
-    .byte $0F,$15,$26,$37
-    .byte $0F,$19,$29,$39
-    .byte $0F,$11,$21,$31
-    .byte $0F,$00,$10,$30
-    .byte $0F,$28,$21,$11
-    .byte $0F,$14,$24,$34
-    .byte $0F,$1B,$2B,$3B
-    .byte $0F,$12,$22,$32
+PALLETE_COUNT = 3
+
+palettes:
+; Day palette
+    ; Background palettes
+    .byte $30,$0F,$0F,$0F
+    .byte $30,$0F,$0F,$0F
+    .byte $30,$0F,$0F,$0F
+    .byte $30,$0F,$0F,$0F
+
+    ; OAM palettes (very basic palettes)
+    .byte $30,$0F,$0F,$0F ; Dino color
+    .byte $30,$0F,$0F,$0F ; Cactus color
+    .byte $30,$0F,$0F,$0F ; Bird color
+    .byte $30,$0F,$0F,$0F ; Unused color
+
+; Evening palette
+    ; Background palettes
+    .byte $00,$30,$30,$30
+    .byte $00,$30,$30,$30
+    .byte $00,$30,$30,$30
+    .byte $00,$30,$30,$30
+
+    ; OAM palettes (very basic palettes)
+    .byte $00,$30,$30,$30 ; Dino color
+    .byte $00,$30,$30,$30 ; Cactus color
+    .byte $00,$30,$30,$30 ; Bird color
+    .byte $00,$30,$30,$30 ; Unused color
+
+; Night palette
+    ; Background palettes
+    .byte $0F,$2C,$2C,$2C
+    .byte $0F,$2C,$2C,$2C
+    .byte $0F,$2C,$2C,$2C
+    .byte $0F,$2C,$2C,$2C
+
+    ; OAM palettes (very basic palettes)
+    .byte $0F,$2C,$2C,$2C ; Dino color
+    .byte $0F,$2C,$2C,$2C ; Cactus color
+    .byte $0F,$2C,$2C,$2C ; Bird color
+    .byte $0F,$2C,$2C,$2C ; Unused color
 
 ; FLoor tile info
 FLOOR_TILES_START = 34
@@ -103,10 +137,6 @@ restart_text:
 
 score_text:
     .byte "SCORE: ", 0
-
-title_colors:
-    .byte %00000101,%00000101,%00000101,%00000101
-    .byte %00000101,%00000101,%00000101,%00000101
     
 irq:
     RTI
@@ -260,9 +290,9 @@ skip_scroll:
 
     LDX #0 ; Reset X for the loop
      
-    ; Store the default palette into the palette area which will be put in the PPU on a vblank interrupt
+    ; Store the day palette into the palette area which will be put in the PPU on a vblank interrupt
     paletteloop:
-        LDA default_palette, x ; Loop through the default palette
+        LDA palettes, x ; Loop through the default palette
         STA palette, x         ; Store the default palette value into palette
         INX                    ; Increment x
         CPX #32                ; Check if we aren't at the end of the palette
@@ -340,20 +370,6 @@ skip_scroll:
     m_assign_16i operation_address, restart_text            ; Write our title to text address
     JSR write_text                                          ; Writes the text in operation_address to the nametable
 
-
-    m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the vram address to the start of the attribute table
-    m_assign_16i paddr, title_colors                   ; Moves title_colors into paddr
-
-    LDY #0 ; Reset y to use for writing the colors to the PPU
-
-    ; Writes paddr to the attribute table of the first nametable
-    loop:
-        LDA (paddr),y
-        STA PPU_VRAM_IO
-        INY
-        CPY #8    ; We can only put 8 colors into the attribute table
-        BNE loop
-
     JSR ppu_update ; Update the PPU
     RTS
 .endproc
@@ -370,19 +386,6 @@ skip_scroll:
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 17 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
     m_assign_16i operation_address, press_play_text         ; Write our ppress play text to text address
     JSR write_text                                          ; Writes the text in operation_address to the nametable
-
-    m_vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) ; Sets the vram address to the start of the attribute table
-    m_assign_16i paddr, title_colors                   ; Moves title_colors into paddr
-
-    LDY #0 ; Reset y to use for writing the colors to the PPU
-
-    ; Writes paddr to the attribute table of the first nametable
-    loop:
-        LDA (paddr),y
-        STA PPU_VRAM_IO
-        INY
-        CPY #8    ; We can only put 8 colors into the attribute table
-        BNE loop
 
     JSR draw_dino   ; Draw the dinosaur on the start screen
 
@@ -404,7 +407,6 @@ skip_scroll:
 
     m_vram_set_address (NAME_TABLE_1_ADDRESS + 32 * 32 + 80)
     JSR create_cloud
-
 
     m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
 

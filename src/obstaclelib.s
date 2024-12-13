@@ -127,7 +127,8 @@ spotsUntilObstacle: .res 1
             CMP #(DINO_POS_X + 18)  ; Compare against the dino x position
             BPL continue            ; If the X position is too large to check for collision we skip the expensive collision
 
-            JSR check_dino_collision     ; Check if the dino collided with this part
+            JSR check_dino_collision ; Check if the dino collided with this part
+            ; LDA #0                 ; uncomment this for immortality
 
             CMP #0                       ; If A is 0, aka no collision was detected
             BEQ continue                 ; Move on with no collisions
@@ -136,7 +137,7 @@ spotsUntilObstacle: .res 1
             ORA #DINO_DEAD               ; Set dead to true
             STA dino_state               ; Update the dino state   
         
-            JMP done_looping             ; Otherwise return from this subroutine
+            ; JMP done_looping             ; Otherwise return from this subroutine
 
     continue:
         ; Update the segment position
@@ -275,6 +276,9 @@ height3:
 
 
 draw_flying_dino:
+    LDA #2 			      ; Use color 2 for the birds
+	STA operation_address ; Put it in operation address, which draw_sprite will use
+
     ; Draw top back of wing bird while wing is down
     LDA #OBSTACLE_STARTPOS_X
     STA oam_px
@@ -381,6 +385,9 @@ draw_flying_dino:
     JSR prng                                    ; Generate a random number
     JSR divide                                  ; Divide A by operation_address
 
+    LDA #1 			                            ; Use color 1 for the cacti
+	STA operation_address                       ; Put it in operation address, which draw_sprite will use
+
     TYA                                         ; Move the remainder to A to add with carry 
     CLC                                         ; Make sure carry is clear
     ADC #CACTUS_BOT_START                       ; Add the start of the range of bottom halves to random number to get a random index of cactus bottom
@@ -395,6 +402,9 @@ draw_flying_dino:
 
     JSR prng                                    ; Generate a random number
     JSR divide                                  ; Divide A by operation_address
+
+    LDA #1 			                            ; Use color 1 for the cacti
+	STA operation_address                       ; Put it in operation address, which draw_sprite will use
 
     TYA                                         ; Move the remainder to A to add with carry
     CLC                                         ; Make sure carry is clear
@@ -419,10 +429,13 @@ draw_flying_dino:
     JSR prng                                        ; Generate a random number
     JSR divide                                      ; Divide A by operation_address
 
+    LDA #1 			      ; Use color 1 for the birds
+	STA operation_address ; Put it in operation address, which draw_sprite will use
+
     TYA                                             ; Tranfer the remainder to add with carry
     CLC                                             ; Make sure carry is clear
     ADC #CACTUS_SMALL_START                         ; Add the start of the range of small cacti to random number to get random index of small cacti
-
+    
     JSR draw_sprite                                 ; Draw small cactus
 
     RTS
