@@ -113,9 +113,10 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
     JSR play_sfx
 
 @skip_step:
-	LDA dino_state 	   ; Get the current dino state
-	AND #DINO_CROUCH   ; Check if the dino is crouching
-	BNE @draw_crouched  ; If the dino is crouching
+	LDA dino_state 	   					; Get the current dino state
+	AND #(DINO_CROUCH | DINO_ON_GROUND) ; Get the crouch and on floor states
+	CMP #(DINO_CROUCH | DINO_ON_GROUND) ; Compare the state
+	BEQ @draw_crouched 					; If they're the same, the dino is crouching
 
 	JSR draw_dino
 	JMP @continue
@@ -136,11 +137,6 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 	LDA gamepad    ; Put the user input into Accumalator
 	AND #PAD_D     ; Listen only for the down button
 	BEQ @crouch_false ; If down isn't pressed, go to crouch false
-
-	; Check if the dino is on the ground
-	LDA dino_state
-	AND #DINO_ON_GROUND
-	BEQ @crouch_false   ; Set crouching to false if the dino is not on the ground
 
 	; Set the dino to crouching
 	LDA dino_state
@@ -219,6 +215,14 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
     STA dino_state            ; Update the state
 
 @update_position:
+	LDA dino_state 	 ; Get the current dino state
+	AND #DINO_CROUCH ; Get the crouch state
+	BEQ @skip_reset_gravity ; If the dino is not crouching, move on
+
+	LDA #248
+	STA dino_vy ; Reset the velocity if the user is crouching in the air
+
+@skip_reset_gravity:
 	LDA dino_py	        ; Get the position of the dino
 	CLC 		        ; Clear the carry before applying velocity
 	SBC dino_vy         ; Apply the y velocity
@@ -228,7 +232,6 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 
 	STA dino_py  ; Store the position
 	
-	LDA dino_vy ; Fetch the velocity
 	DEC dino_vy ; Decrement the velocity (gravity)
 
    	LDA dino_state
