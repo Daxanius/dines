@@ -413,8 +413,8 @@ temp: .res 6
     EOR #$FF          ; Invert all bits (Two's complement step 1)
     CLC               ; Clear carry for addition
     ADC #$01          ; Add 1 (Two's complement step 2)
-@done_abs_x:
 
+@done_abs_x:
     CMP #8           ; Check if result is within sprite width
     BCS @no_overlap  ; If result >= 8, no overlap on X-axis
 
@@ -430,8 +430,8 @@ temp: .res 6
     EOR #$FF          ; Invert all bits (Two's complement step 1)
     CLC               ; Clear carry for addition
     ADC #$01          ; Add 1 (Two's complement step 2)
+    
 @done_abs_y:
-
     CMP #8           ; Check if result is within sprite height
     BCS @no_overlap  ; If result >= 8, no overlap on Y-axis
 
