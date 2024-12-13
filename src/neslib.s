@@ -136,20 +136,20 @@ temp: .res 6
 
         LDA #0  ; Set a to 0, which will be used to set the PPU nametable value to 0
         LDY #30 ; Rows
-    rowloop:
+    @rowloop:
         LDX #32 ; Columns
-        columnloop:
+        @columnloop:
             STA PPU_VRAM_IO ; Store A in the current PPU Vram slot
             DEX             ; Decrement the column index
-            BNE columnloop  ; Jump back to columnloop if we aren't done yet
+            BNE @columnloop  ; Jump back to columnloop if we aren't done yet
             DEY             ; Decrement the row index
-            BNE rowloop     ; Jump back to row loop if there's rows left
+            BNE @rowloop     ; Jump back to row loop if there's rows left
     
     LDX #64 ; Clear the attribute table containing 64 elements
-    loop:
+    @loop:
         STA PPU_VRAM_IO ; Store A into the attribute table address
         DEX             ; Decrement the index
-        BNE loop        ; Continue looping through the attribute table if we aren't done yet
+        BNE @loop        ; Continue looping through the attribute table if we aren't done yet
 
     RTS
 .endproc
@@ -167,20 +167,20 @@ temp: .res 6
 
         LDA #0  ; Set a to 0, which will be used to set the PPU nametable value to 0
         LDY #30 ; Rows
-    rowloop:
+    @rowloop:
         LDX #32 ; Columns
-        columnloop:
+        @columnloop:
             STA PPU_VRAM_IO ; Store A in the current PPU Vram slot
             DEX             ; Decrement the column index
-            BNE columnloop  ; Jump back to columnloop if we aren't done yet
+            BNE @columnloop  ; Jump back to columnloop if we aren't done yet
             DEY             ; Decrement the row index
-            BNE rowloop     ; Jump back to row loop if there's rows left
+            BNE @rowloop     ; Jump back to row loop if there's rows left
     
     LDX #64 ; Clear the attribute table containing 64 elements
-    loop:
+    @loop:
         STA PPU_VRAM_IO ; Store A into the attribute table address
         DEX             ; Decrement the index
-        BNE loop        ; Continue looping through the attribute table if we aren't done yet
+        BNE @loop        ; Continue looping through the attribute table if we aren't done yet
 
     RTS
 .endproc
@@ -192,7 +192,7 @@ temp: .res 6
         LDA #0      ; Stop the polling
         STA JOYPAD1 ; Send the stop request to the joypay
         LDX #8      ; Since a byte is 8 bits, we only need to loop 8 times
-    loop:
+    @loop:
         PHA         ; Store A which holds the current in progress joypad byte
         LDA JOYPAD1 ; Get the next joypad bit 
         AND #%00000011 ; Only use the relevant bits the joypad sent
@@ -200,7 +200,7 @@ temp: .res 6
         PLA            ; Get a from the stack
         ROR            ; Rotate the joypad value into A from the status
         DEX            ; Decrement X for the loop
-        BNE loop       ; Continue looping until all 8 bits are read
+        BNE @loop       ; Continue looping until all 8 bits are read
 
     STA gamepad        ; Store a into the gamepad value
     RTS                ; Return from the subroutine
@@ -210,13 +210,13 @@ temp: .res 6
 ; This function assumes the PPU Vram address pointer is set to a valid OAM or nametable address
 .proc write_text
     LDY #0  ; The index of the loop used to index characters
-    loop:
+    @loop:
         LDA (operation_address),y ; Store the current letter with offset y into a
-        BEQ exit             ; If we encountered 0, which is the null terminator, return from the loop
+        BEQ @exit             ; If we encountered 0, which is the null terminator, return from the loop
         STA PPU_VRAM_IO      ; Store the character into the PPU vram
         INY                  ; Increment the indexing
-        JMP loop             ; Loop again (no null terminator encountered yet)
-    exit:                    ; Just an exit label to make exiting early from the loop easy
+        JMP @loop             ; Loop again (no null terminator encountered yet)
+    @exit:                    ; Just an exit label to make exiting early from the loop easy
         RTS
 .endproc
 
@@ -225,8 +225,8 @@ temp: .res 6
     CMP #0 ; Check if A is not already 0
     TAY    ; Moves A into y
     LDA #0 ; Gets the value that should by multiplied by A
-    loop:
-        BEQ loop               ; Loop if we haven't reached zero yet
+    @loop:
+        BEQ @loop               ; Loop if we haven't reached zero yet
         CLC                    ; Clear the carry
         ADC operation_address  ; Add a to operation_address
         DEY                    ; Decrements Y
@@ -239,21 +239,21 @@ temp: .res 6
     LDY #0                ; Initialize the remainder (Y) to 0
 
     CPX operation_address ; Check if the operation_address is 0
-    BEQ divide_by_zero    ; If operation_address is 0 we can't divide so branch to a subroutine exit
+    BEQ @return           ; If operation_address is 0 we can't divide so branch to a subroutine exit
     
-divide_loop:
+@divide_loop:
     CMP operation_address ; Compare current remainder (A) to divisor
-    BCC done_divide       ; If remainder < divisor, division is complete
+    BCC @done_divide      ; If remainder < divisor, division is complete
     SEC                   ; Set the carry flag for subtraction
     SBC operation_address ; Subtract divisor from current remainder
     INX                   ; Increment quotient in X
-    JMP divide_loop       ; Repeat until remainder < divisor
+    JMP @divide_loop      ; Repeat until remainder < divisor
 
-done_divide:
+@done_divide:
     TAY                   ; Move the remainder from A to Y
     TXA                   ; Store the quotient in A
 
-divide_by_zero:
+@return:
     RTS                   ; Leave subroutine
 .endproc
 
@@ -292,11 +292,11 @@ divide_by_zero:
 ; Sets A to its absolute value
 .proc abs
     CMP #0
-    BPL done          ; If A is positive (bit 7 is 0), skip the negation
+    BPL @done          ; If A is positive (bit 7 is 0), skip the negation
     EOR #$FF          ; Invert all bits (Two's complement step 1)
     CLC               ; Clear carry for addition
     ADC #$01          ; Add 1 (Two's complement step 2)
-done:
+@done:
     RTS               ; Return from subroutine
 .endproc
 
@@ -409,37 +409,37 @@ done:
     ; JSR abs          ; Get the absolute value for the distance
     ; The absolute without JSR, saving 6 cycles
     CMP #0
-    BPL done_abs_x    ; If A is positive (bit 7 is 0), skip the negation
+    BPL @done_abs_x   ; If A is positive (bit 7 is 0), skip the negation
     EOR #$FF          ; Invert all bits (Two's complement step 1)
     CLC               ; Clear carry for addition
     ADC #$01          ; Add 1 (Two's complement step 2)
-done_abs_x:
+@done_abs_x:
 
     CMP #8           ; Check if result is within sprite width
-    BCS no_overlap   ; If result >= 8, no overlap on X-axis
+    BCS @no_overlap  ; If result >= 8, no overlap on X-axis
 
     ; Calculate the difference in Y positions
     LDA oam, x       ; Load Y position of sprite X
-    CLC               ; Set carry for subtraction
+    CLC              ; Set carry for subtraction
     SBC oam, y       ; Subtract Y position of sprite Y
     
     ;JSR abs          ; Get the absolute value for the distance
     ; The absolute without JSR, saving 6 cycles
     CMP #0
-    BPL done_abs_y    ; If A is positive (bit 7 is 0), skip the negation
+    BPL @done_abs_y   ; If A is positive (bit 7 is 0), skip the negation
     EOR #$FF          ; Invert all bits (Two's complement step 1)
     CLC               ; Clear carry for addition
     ADC #$01          ; Add 1 (Two's complement step 2)
-done_abs_y:
+@done_abs_y:
 
     CMP #8           ; Check if result is within sprite height
-    BCS no_overlap   ; If result >= 8, no overlap on Y-axis
+    BCS @no_overlap  ; If result >= 8, no overlap on Y-axis
 
     ; If both X and Y overlap, return true
     LDA #1           ; Set A to 1 to indicate collision
     RTS
 
-no_overlap:
+@no_overlap:
     ; No collision
     LDA #0           ; Set A to 0 to indicate no collision
     RTS

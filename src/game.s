@@ -161,15 +161,15 @@ irq:
     BIT PPU_STATUS ; Reset the PPU status
 
     ; Wait for the vblank before we can start resetting everything
-    wait_vblank:
+    @wait_vblank:
         BIT PPU_STATUS  ; Get the PPU w register
-        BPL wait_vblank ; Jump to wait for the VBlank
+        BPL @wait_vblank ; Jump to wait for the VBlank
 
     LDA #0          ; Set the A register to 0
     LDX #0          ; Set the X register to 0
 
     ; Clear the RAM memory by looping and repetitively incrementing X going through the entire RAM
-    clear_ram:
+    @clear_ram:
         STA $0000,x 
         STA $0100,x
         STA $0200,x
@@ -179,7 +179,7 @@ irq:
         STA $0600,x
         STA $0700,x
         INX
-        BNE clear_ram
+        BNE @clear_ram
 
     LDA #2          ; Set the game speed to 2 
     STA game_speed  ; Reset the game speed
@@ -189,7 +189,7 @@ irq:
     LDX #0
 
     ; Clears the OAM by looping through the addresses of X
-    clear_oam:
+    @clear_oam:
         STA oam,x   ; Stores the current value of A into the oam
 
         ; Skipping bytes
@@ -197,12 +197,12 @@ irq:
         INX         ; Byte 2 of an object
         INX         ; Byte 3 of an object
         INX         ; Byte 4 of an object
-        BNE clear_oam
+        BNE @clear_oam
 
     ; Wait for the VBlank again before we can start changing PPU settingss
-    wait_vblank2:
+    @wait_vblank2:
         BIT PPU_STATUS
-        BPL wait_vblank2
+        BPL @wait_vblank2
 
     LDA #%10001000  ; PPU Control settings, can be found https://www.nesdev.org/wiki/PPU_registers#PPUCTRL
     STA PPU_CONTROL ; Store A in PPU control, applying our settings
@@ -252,13 +252,13 @@ irq:
     LDA ppu_ctl
     AND #2
     CMP #2                  ; Check if we are drawing the background
-    BNE skip_scroll         ; Skip scoll if we are on the second nametable
+    BNE @skip_scroll         ; Skip scoll if we are on the second nametable
 
     LDA PPU_STATUS          ; Clear w (write latch) of the PPU, which keeps track of which byte is being written
     LDA ppu_scroll_x        ; Get the ppu scroll set variable
     STA PPU_SCROLL_ADDRESS  ; Store ppu scroll x to ppu scroll address
 
-skip_scroll:
+@skip_scroll:
     LDA #0                   ; Reset ppu scroll y
     STA PPU_SCROLL_ADDRESS   ; Store ppu scroll 0 into y
 
@@ -293,23 +293,23 @@ skip_scroll:
     LDX #0 ; Reset X for the loop
      
     ; Store the day palette into the palette area which will be put in the PPU on a vblank interrupt
-    paletteloop:
+    @paletteloop:
         LDA palettes, x ; Loop through the default palette
         STA palette, x         ; Store the default palette value into palette
         INX                    ; Increment x
         CPX #32                ; Check if we aren't at the end of the palette
-        BCC paletteloop        ; Keeping copying over palette bytes if we aren't done yet
+        BCC @paletteloop        ; Keeping copying over palette bytes if we aren't done yet
 
     JSR dino_start             ; Jump to the setup function for the main game
     JSR display_title_screen   ; Display the title screen
 
     ; The title loop simply keeps looping until any input
-    titleloop:
+    @titleloop:
         m_inc_16_i seed  ; Increment the seed while the user is in the titlescreen, gives a lil pseudo random seed
         JSR gamepad_poll ; Fetch the user input
         LDA gamepad      ; Put the user input into A
         AND #PAD_A       ; Listen only for the A button
-        BEQ titleloop    ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
+        BEQ @titleloop    ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
     
     JSR display_game_screen ; Finally display the game screen after we are done with the title
     JSR dino_start          ; Jump to the setup function for the main game
@@ -317,11 +317,11 @@ skip_scroll:
     STA displayScore
 
     ; The main game loop
-    mainloop:
+    @mainloop:
         ; Skip looping if the previous frame has not been drawn
         LDA nmi_ready ; Grab the NMI status
         CMP #0        ; Check if it's done rendering the last frame
-        BNE mainloop  ; Jump back to the start to wait until the frame has been drawn
+        BNE @mainloop  ; Jump back to the start to wait until the frame has been drawn
 
         JSR gamepad_poll    ; Fetch the user input
         JSR dino_update     ; Jumps to the main dines updating loop
@@ -338,7 +338,7 @@ skip_scroll:
         AND #DINO_DEAD  ; Get the dino dead value
         CMP #DINO_DEAD  ; Check the dino dead value
 
-        BNE mainloop    ; Loop again if the dino is shown to be alive
+        BNE @mainloop    ; Loop again if the dino is shown to be alive
 
     LDA #0
     STA oam_idx
@@ -351,11 +351,11 @@ skip_scroll:
 
     JSR display_gameover_screen
 
-    game_over_loop:
+    @game_over_loop:
         JSR gamepad_poll        ; Fetch the user input
         LDA gamepad             ; Put the user input into A
         AND #PAD_START          ; Listen only for the A button
-        BEQ game_over_loop      ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
+        BEQ @game_over_loop      ; Keep looping through the title if none of the buttons have been pressed (and resulted in 0)
 
         JSR handle_reset    
     RTS
@@ -413,7 +413,7 @@ skip_scroll:
     m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
 
     LDY #0
-    loop_ground:
+    @loop_ground:
         TYA
         PHA
 
@@ -432,7 +432,7 @@ skip_scroll:
 
         INY 
         CPY #32
-        BNE loop_ground
+        BNE @loop_ground
 
     m_vram_set_address(NAME_TABLE_0_ADDRESS + 19)
     m_assign_16i operation_address, score_text     ; Write our score to text address

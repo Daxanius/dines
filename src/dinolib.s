@@ -62,7 +62,7 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 
 	TYA 			; Tranfer remainder to A
 	CMP #0 	    	; If game ticks devided by 20 has a remainder of 0 
-	BNE skip_step   ; Jump to not change legs
+	BNE @skip_step   ; Jump to not change legs
 
 	LDA dino_state 		 ; Get the current dino state
 	EOR #DINO_LEG_VARIANT ; Xor with the dino leg variant to toggle
@@ -72,7 +72,7 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 
 	LDA dino_steps  ; Load the dino steps
 	CMP #$80        ; Check if it's half
-	BMI skip_step   ; Skip incrementing the speed otherwise
+	BMI @skip_step   ; Skip incrementing the speed otherwise
 
 	LDA #0
 	STA dino_steps
@@ -99,31 +99,31 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 
 	LDX palette_idx ; Get the palette index into X
 	LDY #0 ; Store 0 in Y
-	paletteloop:
+	@paletteloop:
         LDA palettes, x ; Loop through the next palette palette
         STA palette, y         ; Index with Y
         INX                    ; Increment x
 		INY 				   ; Increment Y
         CPY #32                ; Check if we aren't at the end of the palette
-        BCC paletteloop        ; Keeping copying over palette bytes if we aren't done yet
+        BCC @paletteloop        ; Keeping copying over palette bytes if we aren't done yet
 
 	; Play coin sound
 	LDA #2
     LDX #1 ; play on channel 1
     JSR play_sfx
 
-skip_step:
+@skip_step:
 	LDA dino_state 	   ; Get the current dino state
 	AND #DINO_CROUCH   ; Check if the dino is crouching
-	BNE draw_crouched  ; If the dino is crouching
+	BNE @draw_crouched  ; If the dino is crouching
 
 	JSR draw_dino
-	JMP continue
+	JMP @continue
 
-draw_crouched:
+@draw_crouched:
 	JSR draw_dino_crouched
 
-continue:
+@continue:
 	JSR dino_input   ; Handle user input
 
 	CLC
@@ -135,59 +135,59 @@ continue:
 .proc dino_input
 	LDA gamepad    ; Put the user input into Accumalator
 	AND #PAD_D     ; Listen only for the down button
-	BEQ crouch_false ; If down isn't pressed, go to crouch false
+	BEQ @crouch_false ; If down isn't pressed, go to crouch false
 
 	; Check if the dino is on the ground
 	LDA dino_state
 	AND #DINO_ON_GROUND
-	BEQ crouch_false   ; Set crouching to false if the dino is not on the ground
+	BEQ @crouch_false   ; Set crouching to false if the dino is not on the ground
 
 	; Set the dino to crouching
 	LDA dino_state
 	ORA #DINO_CROUCH
 	STA dino_state
-	JMP end_check
+	JMP @end_check
 
-crouch_false:
+@crouch_false:
 	LDA dino_state
 	AND #%11111110
 	STA dino_state
 
-end_check:
+@end_check:
     LDA gamepad    ; Put the user input into Accumalator
     AND #PAD_A     ; Listen only for the A button
-    BEQ check_hold ; if A isnt pressed check if A was being held down
+    BEQ @check_hold ; if A isnt pressed check if A was being held down
 
 	;A is being pressed 
 	LDA dino_state			; load state
 	ORA #DINO_HOLD_JUMP		; set DINO_HOLD_JUMP bit
 	STA dino_state			; store updated state
-	BNE jump				; (always) branch to jump
+	BNE @jump				; (always) branch to jump
 	;end of A being pressed logic
 
-stop_hold:
+@stop_hold:
 	LDA dino_state			; load state
 	ORA #DINO_JUMPED		; set DINO_JUMPED bit
 	STA dino_state			; store updated state
-	BNE return				; (always) branch to return
+	BNE @return				; (always) branch to return
 
-check_hold:
+@check_hold:
 	LDA dino_state			; load state
 	AND #DINO_HOLD_JUMP		; compares with DINO_HOLD_JUMP
-	BNE stop_hold			; if holding: stop holding
+	BNE @stop_hold			; if holding: stop holding
 							; else:
 	LDA dino_state			; load state
 	AND #%10111111			; clear DINO_HOLD_JUMP
 	STA dino_state			; store updated state
 
-return:
+@return:
 	RTS
 
-jump:
+@jump:
     ; Check if the dino has not touched the ceiling yet
     LDA dino_state            ; Get the state
     AND #DINO_TOUCHED_CEILING ; Get only the touched ceiling bit
-	BNE return                ; Continue if we touched the ceiling
+	BNE @return                ; Continue if we touched the ceiling
 
     ; Apply jump force
     LDA #JUMP_FORCE
@@ -195,14 +195,14 @@ jump:
 
 	LDA dino_state			; load state
 	AND #DINO_ON_GROUND		; Checks if the dino is on the ground
-	BEQ skip_sound			; If we are not on the ground anymore, skip plaing a sound
+	BEQ @skip_sound			; If we are not on the ground anymore, skip plaing a sound
 
 	; Play jumping sound
 	LDA #0
     LDX #0
     JSR play_sfx
 
-skip_sound:
+@skip_sound:
 	RTS
 .endproc
 
@@ -212,19 +212,19 @@ skip_sound:
 
     ; Check for the ceiling, it is only used to disallow the user from jumping, not to bump against it
     CMP #CEILING_HEIGHT
-    BMI update_position ; If we did not touch the ceiling, update state
+    BMI @update_position ; If we did not touch the ceiling, update state
 
     LDA dino_state            ; Get the state
     ORA #DINO_TOUCHED_CEILING ; Set the touched ceiling flag
     STA dino_state            ; Update the state
 
-update_position:
+@update_position:
 	LDA dino_py	        ; Get the position of the dino
 	CLC 		        ; Clear the carry before applying velocity
 	SBC dino_vy         ; Apply the y velocity
 	CMP #FLOOR_HEIGHT-1 ; Check if the position is not underneath the y position
-	BPL reset_vel 	    ; Go to reset velocity if the position is underneath the base position
-	BEQ reset_vel       ; Also go to reset when it is equal to the floor height
+	BPL @reset_vel 	    ; Go to reset velocity if the position is underneath the base position
+	BEQ @reset_vel      ; Also go to reset when it is equal to the floor height
 
 	STA dino_py  ; Store the position
 	
@@ -236,7 +236,7 @@ update_position:
     STA dino_state  ; Store back the updated state
 
 	RTS
-reset_vel:
+@reset_vel:
 	LDA #0		; Set A to 0
 	STA dino_vy ; Reset the y velocity of the dino
 
@@ -276,15 +276,15 @@ reset_vel:
 	LDA dino_state  ; Get the dino state
 	AND #DINO_DEAD  ; Get the dino dead value
 	CMP #DINO_DEAD  ; Check the dino dead value
-	BEQ draw_dead_head ; Draw the dead head if the dino is dead
+	BEQ @draw_dead_head ; Draw the dead head if the dino is dead
 	
 	LDA #DINO_HEAD	; Select the dino head to draw
-	JMP draw_head   ; Draw the head
+	JMP @draw_head   ; Draw the head
 
-	draw_dead_head:
+	@draw_dead_head:
 		LDA #DINO_HEAD_DEAD
 
-	draw_head:
+	@draw_head:
 		JSR draw_sprite ; Draw the dino head
 
 	LDA dino_py 	; Get the dino y position
@@ -301,15 +301,15 @@ reset_vel:
 	LDA dino_state  ; Get the dino state for the legs
 	AND #DINO_LEG_VARIANT ; Check against the leg variant
 	CMP #0				 ; Check if the legs were set
-	BNE leg_2			 ; Jump to leg 2 if they were were set
+	BNE @leg2			 ; Jump to leg 2 if they were were set
 
 	LDA #DINO_LEGS1	; Select the dino legs to draw
-	JMP draw_legs	; Jump to the drawing logic
+	JMP @draw_legs	; Jump to the drawing logic
 
-	leg_2:
+	@leg2:
 		LDA #DINO_LEGS2	; Select the second dino legs
 
-	draw_legs:
+	@draw_legs:
 		JSR draw_sprite ; Draw the dino legs
 	RTS
 .endproc
@@ -328,16 +328,16 @@ reset_vel:
 
 	LDA dino_state  ; Get the dino state for the legs
 	AND #DINO_LEG_VARIANT ; Check against the leg variant
-	CMP #0				 ; Check if the legs were set
-	BNE leg_21			 ; Jump to leg 2 if they were were set
+	CMP #0				  ; Check if the legs were set
+	BNE @back_leg2		  ; Jump to leg 2 if they were were set
 
 	LDA #DINO_CROUCH_TAIL	; Select the dino legs to draw
-	JMP draw1				; Jump to the drawing logic
+	JMP @back_leg_draw		; Jump to the drawing logic
 
-	leg_21:
+	@back_leg2:
 		LDA #DINO_CROUCH_TAIL_VARIANT	; Select the second dino back
 
-	draw1:
+	@back_leg_draw:
 		JSR draw_sprite 
 
 
@@ -348,16 +348,16 @@ reset_vel:
 
 	LDA dino_state  ; Get the dino state for the legs
 	AND #DINO_LEG_VARIANT ; Check against the leg variant
-	CMP #0				 ; Check if the legs were set
-	BNE leg_2			 ; Jump to leg 2 if they were were set
+	CMP #0				  ; Check if the legs were set
+	BNE @front_leg2	      ; Jump to leg 2 if they were were set
 
 	LDA #DINO_CROUCH_BACK	; Select the dino legs to draw
-	JMP draw				; Jump to the drawing logic
+	JMP @front_leg_draw	    ; Jump to the drawing logic
 
-	leg_2:
+	@front_leg2:
 		LDA #DINO_CROUCH_BACK_VARIANT	; Select the second dino back
 
-	draw:
+	@front_leg_draw:
 		JSR draw_sprite ; Draw the dino leg variant
 
 	LDA oam_px		; Get desired x position
