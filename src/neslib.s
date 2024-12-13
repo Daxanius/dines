@@ -289,25 +289,6 @@ temp: .res 6
 	RTS
 .endproc
 
-; Sets A to its absolute value
-.proc abs
-    CMP #0
-    BPL @done          ; If A is positive (bit 7 is 0), skip the negation
-    EOR #$FF          ; Invert all bits (Two's complement step 1)
-    CLC               ; Clear carry for addition
-    ADC #$01          ; Add 1 (Two's complement step 2)
-@done:
-    RTS               ; Return from subroutine
-.endproc
-
-; Sets A to its inverse
-.proc inv
-    EOR #$FF          ; Invert all bits (Two's complement step 1)
-    CLC               ; Clear carry for addition
-    ADC #$01          ; Add 1 (Two's complement step 2)
-    RTS               ; Return from subroutine
-.endproc
-
 .proc add_score
     CLC
     ADC score
@@ -368,7 +349,6 @@ temp: .res 6
 .endproc
 
 .proc display_score
-    m_vram_set_address(NAME_TABLE_0_ADDRESS + 26)
     LDA score+2
     JSR dec99_to_string
 
@@ -385,18 +365,68 @@ temp: .res 6
     STX temp+4
     STA temp+5
 
-    LDX #0
+    LDA #((255/2)-((8*6)/2)+4) ; The X position
+    STA operation_address      ; Store it in op address
 
+    LDX #252              ; Start at last OAM slot
+    LDY #0                ; Store 0 in Y
     @loop:
-        lda temp,x
-        clc
-        adc #48
-        sta PPU_VRAM_IO
-        inx
-        cpx #6
-        bne @loop
-    m_vram_clear_address
-    rts
+        ; Store the character
+        LDA temp, y  ; Get the to string converted character
+        CLC          ; Clear carry
+        ADC #48      ; Add 48 to get to character tiles
+        STA oam+1, x ; Set the tile index
+
+        ; Store the Y position
+        LDA #8
+        STA oam, x
+
+        ; Store the X position
+        LDA operation_address
+        STA oam+3, x
+
+        ; Store the properties
+        LDA #0                ; No special properties
+        STA oam+2, x
+
+        ; Decrement X for the next oam entry
+        DEX
+        DEX
+        DEX
+        DEX
+
+        ; Move to the next digit
+        INY                   ; Increment Y
+
+        ; Adjust X position for next sprite
+        LDA operation_address
+        CLC
+        ADC #8
+        STA operation_address
+
+        CPY #6                ; If we have stored all characters
+        BNE @loop             ; Then continue looping
+
+    RTS
+.endproc
+
+; Sets A to its inverse
+.proc inv
+    EOR #$FF          ; Invert all bits (Two's complement step 1)
+    CLC               ; Clear carry for addition
+    ADC #$01          ; Add 1 (Two's complement step 2)
+    RTS               ; Return from subroutine
+.endproc
+
+; Sets A to its absolute value
+.proc abs
+    CMP #0
+    BPL @done          ; If A is positive (bit 7 is 0), skip the negation
+    EOR #$FF          ; Invert all bits (Two's complement step 1)
+    CLC               ; Clear carry for addition
+    ADC #$01          ; Add 1 (Two's complement step 2)
+@done:
+    RTS               ; Return from subroutine
 .endproc
 
 ; Checks collision between 2 OAM sprites stored in Y and X, sets A to 1 if there was a collision detected
@@ -430,7 +460,7 @@ temp: .res 6
     EOR #$FF          ; Invert all bits (Two's complement step 1)
     CLC               ; Clear carry for addition
     ADC #$01          ; Add 1 (Two's complement step 2)
-    
+
 @done_abs_y:
     CMP #8           ; Check if result is within sprite height
     BCS @no_overlap  ; If result >= 8, no overlap on Y-axis

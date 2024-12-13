@@ -136,9 +136,6 @@ game_over_text:
 
 restart_text:
     .byte "PRESS START TO RESTART", 0
-
-score_text:
-    .byte "SCORE: ", 0
     
 irq:
     RTI
@@ -146,7 +143,7 @@ irq:
 ; First code that runs the NES boots or the reset interrupt is called
 .proc handle_reset
     SEI             ; Disable interupts
-    LDA #0          ; Set a ti 0
+    LDA #0          ; Set a to 0
     STA PPU_CONTROL ; Store 0 to PPU to reset it
     STA PPU_MASK    ; Reset the PPU MASK
     STA APU_DM_CONTROL ; Reset APU control
@@ -235,30 +232,13 @@ irq:
         CPX #32         ; Check if X has not hit 32 yet
         BCC @loop       ; Continue looping as long as we haven't gone through the palette yet
 
-    LDA displayScore
-    BEQ @skip
-    JSR display_score
-
-@skip:
     LDA ppu_ctl              ; Get the PPU control settings
-    EOR #2                   ; Switch between nametables every frame
-    STA ppu_ctl              ; Stored the switched PPU control setting
     STA PPU_CONTROL          ; Send the PPU control settings to the PPU
-    
-    ; Reset ppu scroll
-    LDA #0                  ; Reset A
-    STA PPU_SCROLL_ADDRESS  ; Store 0 in scroll address
-
-    LDA ppu_ctl
-    AND #2
-    CMP #2                  ; Check if we are drawing the background
-    BNE @skip_scroll         ; Skip scoll if we are on the second nametable
 
     LDA PPU_STATUS          ; Clear w (write latch) of the PPU, which keeps track of which byte is being written
     LDA ppu_scroll_x        ; Get the ppu scroll set variable
     STA PPU_SCROLL_ADDRESS  ; Store ppu scroll x to ppu scroll address
 
-@skip_scroll:
     LDA #0                   ; Reset ppu scroll y
     STA PPU_SCROLL_ADDRESS   ; Store ppu scroll 0 into y
 
@@ -330,6 +310,8 @@ irq:
         LDA #1          ; Always add 1 to the score, no matter the speed
         JSR add_score   ; Increment the score
 
+        JSR display_score ; Draw the score
+
         ; Ensure our changes are rendered
         LDA #1        ; Store true in A
         STA nmi_ready ; Make sure when we loop again, we wait until the VBlank interrupt is called before moving on
@@ -341,6 +323,7 @@ irq:
         BNE @mainloop    ; Loop again if the dino is shown to be alive
 
     LDA #0
+    STA ppu_scroll_x    ; Reset the PPU scroll
     STA oam_idx
     JSR draw_dino       ; Draw the dino
 
@@ -379,7 +362,7 @@ irq:
 .proc display_title_screen
     JSR ppu_off            ; Disable the PPU
     JSR clear_nametable0   ; Clear the background
-    JSR clear_nametable1   ; Clear the background
+    JSR clear_nametable1   ; Also clear nametable 1
 
     m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 6) ; Set the address to the start nametable plus the position where we want to draw our text
     m_assign_16i operation_address, title_text             ; Write our title to text address
@@ -401,16 +384,19 @@ irq:
     JSR clear_nametable0
 
     ; Spread some clouds around lol
-    m_vram_set_address (NAME_TABLE_1_ADDRESS + 10 * 32) 
-    JSR create_cloud
-    
-    m_vram_set_address (NAME_TABLE_1_ADDRESS + 13 * 32 + 12)
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 4 * 32 + 5) 
     JSR create_cloud
 
-    m_vram_set_address (NAME_TABLE_1_ADDRESS + 32 * 32 + 80)
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 8 * 32 + 20)
     JSR create_cloud
 
-    m_vram_set_address (NAME_TABLE_1_ADDRESS + (180 + 3) * 32)
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 14 * 32 + 13)
+    JSR create_cloud
+
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 16 * 32 + 2)
+    JSR create_cloud
+
+    m_vram_set_address (NAME_TABLE_0_ADDRESS + 23 * 32)
 
     LDY #0
     @loop_ground:
@@ -433,10 +419,6 @@ irq:
         INY 
         CPY #32
         BNE @loop_ground
-
-    m_vram_set_address(NAME_TABLE_0_ADDRESS + 19)
-    m_assign_16i operation_address, score_text     ; Write our score to text address
-    JSR write_text                                 ; Writes the text in operation_address to the nametable
 
     JSR ppu_update ; Update the PPU
     RTS
