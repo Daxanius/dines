@@ -77,7 +77,14 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 	LDA #0
 	STA dino_steps
 
+	LDA game_speed  ; Fetch the game speed
+	CMP #MAX_SPEED   ; Compare it against the maximum game speed
+	BEQ @skip_speed_inc ; Skip incrementing the game speed if we are at the max
+	BPL @skip_speed_inc ; Or somehow exceeding the max
+
 	INC game_speed  ; Increment the game speed
+
+@skip_speed_inc:
 
 	LDA #(32 * PALLETE_COUNT) ; The maximum allowed palette index
 	STA operation_address ; Store it in operation address for division
