@@ -431,49 +431,42 @@ temp: .res 6
 
 ; Checks collision between 2 OAM sprites stored in Y and X, sets A to 1 if there was a collision detected
 .proc check_collision
-    ; Calculate the difference in X positions
-    LDA oam+3, x     ; Load X position of sprite X
-    CLC              ; Set carry for subtraction
-    SBC oam+3, y     ; Subtract X position of sprite Y
+    ; --- Check X-axis overlap ---
+    LDA oam+3, x       ; Load X position of sprite X
+    SEC                ; Set carry for subtraction
+    SBC oam+3, y       ; Subtract X position of sprite Y
 
-    ; JSR abs          ; Get the absolute value for the distance
-    ; The absolute without JSR, saving 6 cycles
-    CMP #0
-    BPL @done_abs_x   ; If A is positive (bit 7 is 0), skip the negation
-    EOR #$FF          ; Invert all bits (Two's complement step 1)
-    CLC               ; Clear carry for addition
-    ADC #$01          ; Add 1 (Two's complement step 2)
+    BPL @check_x       ; If positive, skip negation
+    EOR #$FF           ; Two's complement step 1
+    SEC
+    ADC #$01           ; Two's complement step 2
+@check_x:
+    CMP #8             ; Compare to sprite width (8 pixels)
+    BCS @no_collision  ; If difference >= 8, no collision on X-axis
 
-@done_abs_x:
-    CMP #8           ; Check if result is within sprite width
-    BCS @no_overlap  ; If result >= 8, no overlap on X-axis
+    ; --- Check Y-axis overlap ---
+    LDA oam, x         ; Load Y position of sprite X
+    SEC                ; Set carry for subtraction
+    SBC oam, y         ; Subtract Y position of sprite Y
 
-    ; Calculate the difference in Y positions
-    LDA oam, x       ; Load Y position of sprite X
-    CLC              ; Set carry for subtraction
-    SBC oam, y       ; Subtract Y position of sprite Y
-    
-    ;JSR abs          ; Get the absolute value for the distance
-    ; The absolute without JSR, saving 6 cycles
-    CMP #0
-    BPL @done_abs_y   ; If A is positive (bit 7 is 0), skip the negation
-    EOR #$FF          ; Invert all bits (Two's complement step 1)
-    CLC               ; Clear carry for addition
-    ADC #$01          ; Add 1 (Two's complement step 2)
+    BPL @check_y       ; If positive, skip negation
+    EOR #$FF           ; Two's complement step 1
+    SEC
+    ADC #$01           ; Two's complement step 2
+@check_y:
+    CMP #8             ; Compare to sprite height (8 pixels)
+    BCS @no_collision  ; If difference >= 8, no collision on Y-axis
 
-@done_abs_y:
-    CMP #8           ; Check if result is within sprite height
-    BCS @no_overlap  ; If result >= 8, no overlap on Y-axis
-
-    ; If both X and Y overlap, return true
-    LDA #1           ; Set A to 1 to indicate collision
+    ; --- Both axes overlap ---
+    LDA #1             ; Set A to 1 to indicate collision
     RTS
 
-@no_overlap:
+@no_collision:
     ; No collision
-    LDA #0           ; Set A to 0 to indicate no collision
+    LDA #0             ; Set A to 0 to indicate no collision
     RTS
 .endproc
+
 
 ; Draws a sprite with index of A to the OAM, optionally, the value in operation_address may be used for properties
 ; Make sure to set it to 0 before drawing a sprite otherwise
