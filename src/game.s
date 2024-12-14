@@ -116,7 +116,7 @@ CLOUD_LEFT_END = 25
 CLOUD_RIGHT_START = 26
 CLOUD_RIGHT_END = 27
 
-MAX_SPEED = 5 ; The maximum game speed
+MAX_SPEED = 4 ; The maximum game speed
 
 ;*****************************************************************
 ; Main application entry point for startup/reset
