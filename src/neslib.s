@@ -433,7 +433,7 @@ temp: .res 6
 .proc check_collision
     ; Calculate the difference in X positions
     LDA oam+3, x     ; Load X position of sprite X
-    CLC              ; Set carry for subtraction
+    SEC              ; Set carry for subtraction
     SBC oam+3, y     ; Subtract X position of sprite Y
 
     ; JSR abs          ; Get the absolute value for the distance
@@ -450,7 +450,7 @@ temp: .res 6
 
     ; Calculate the difference in Y positions
     LDA oam, x       ; Load Y position of sprite X
-    CLC              ; Set carry for subtraction
+    SEC              ; Set carry for subtraction
     SBC oam, y       ; Subtract Y position of sprite Y
     
     ;JSR abs          ; Get the absolute value for the distance
