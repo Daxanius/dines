@@ -219,7 +219,7 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 	AND #DINO_CROUCH ; Get the crouch state
 	BEQ @skip_reset_gravity ; If the dino is not crouching, move on
 
-	LDA #248
+	LDA #247
 	STA dino_vy ; Reset the velocity if the user is crouching in the air
 
 @skip_reset_gravity:

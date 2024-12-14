@@ -123,10 +123,6 @@ spotsUntilObstacle: .res 1
     @skip_bird:    
             PHA        ; Store the remainder on the stack again for later use
 
-            LDA oam+3, x            ; Get the X position of the tile
-            CMP #(DINO_POS_X + 18)  ; Compare against the dino x position
-            BPL @continue            ; If the X position is too large to check for collision we skip the expensive collision
-
             JSR check_dino_collision ; Check if the dino collided with this part
             ; LDA #0                 ; uncomment this for immortality
 
@@ -167,7 +163,7 @@ spotsUntilObstacle: .res 1
 
 ; Checks segment collision with segment in X with any dino parts and updates accordingly, stores 0 in A if nothing happened
 .proc check_dino_collision
-    LDY oam ; Start of the oam
+    LDY #0 ; Start of the oam
     @loop:
         CPY #12     ; Check if we still have dino parts to loop through
         BPL @return ; No collision detected
