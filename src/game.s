@@ -40,7 +40,12 @@ FAMISTUDIO_DPCM_OFF           = $e00
 .define FAMISTUDIO_CA65_CODE_SEGMENT CODE
 
 .include "famistudio_ca65.s"
+
 .include "sfx.s"
+.include "music.s"
+
+.segment "DPCM"
+.incbin "music.dmc"
 
 .segment "ZEROPAGE" ; Variables
 paddr: .res 2
@@ -262,8 +267,8 @@ irq:
 .proc main
     ; Initialize the sound engine
     LDA #1
-    LDX #0
-    LDY #0
+    LDX #.lobyte(music_data_dines)
+    LDY #.hibyte(music_data_dines)
     JSR famistudio_init
 
     LDX #.lobyte(sounds)
@@ -283,6 +288,9 @@ irq:
     JSR dino_start             ; Jump to the setup function for the main game
     JSR display_title_screen   ; Display the title screen
 
+    LDA #0         ; Load the first song
+    JSR play_music ; Play it
+
     ; The title loop simply keeps looping until any input
     @titleloop:
         m_inc_16_i seed  ; Increment the seed while the user is in the titlescreen, gives a lil pseudo random seed
@@ -295,6 +303,9 @@ irq:
     JSR dino_start          ; Jump to the setup function for the main game
     LDA #1
     STA displayScore
+
+    LDA #1         ; Load the playing song
+    JSR play_music ; Play it
 
     ; The main game loop
     @mainloop:
@@ -333,6 +344,9 @@ irq:
     JSR play_sfx ; NO WAY
 
     JSR display_gameover_screen
+
+    LDA #2         ; Load the death song
+    JSR play_music ; Play it
 
     @game_over_loop:
         JSR gamepad_poll        ; Fetch the user input

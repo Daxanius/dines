@@ -109,7 +109,7 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 
 	; Play coin sound
 	LDA #2
-    LDX #1 ; play on channel 1
+    LDX #0 ; play on channel 0
     JSR play_sfx
 
 @skip_step:
