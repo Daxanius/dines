@@ -126,14 +126,14 @@ spotsUntilObstacle: .res 1
             JSR check_dino_collision ; Check if the dino collided with this part
             ; LDA #0                 ; uncomment this for immortality
 
-            CMP #0                       ; If A is 0, aka no collision was detected
-            BEQ @continue                 ; Move on with no collisions
+            CMP #0                   ; If A is 0, aka no collision was detected
+            BEQ @continue            ; Move on with no collisions
 
-            LDA dino_state               ; Fetch the dino state
-            ORA #DINO_DEAD               ; Set dead to true
-            STA dino_state               ; Update the dino state   
+            LDA dino_state           ; Fetch the dino state
+            ORA #DINO_DEAD           ; Set dead to true
+            STA dino_state           ; Update the dino state   
         
-            ; JMP done_looping             ; Otherwise return from this subroutine
+            ; JMP done_looping           ; Otherwise return from this subroutine
 
     @continue:
         ; Update the segment position
