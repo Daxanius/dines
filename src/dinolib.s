@@ -85,7 +85,6 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 	INC game_speed  ; Increment the game speed
 
 @skip_speed_inc:
-
 	LDA #(32 * PALLETE_COUNT) ; The maximum allowed palette index
 	STA operation_address ; Store it in operation address for division
 
@@ -192,6 +191,10 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 	LDA dino_state			; load state
 	AND #DINO_ON_GROUND		; Checks if the dino is on the ground
 	BEQ @skip_sound			; If we are not on the ground anymore, skip plaing a sound
+
+	LDA dino_state			; load state
+	AND #DINO_CROUCH		; Checks if the dino is on the ground
+	BNE @skip_sound			; If we are crouching, skip playing the jump sound, since the dino cannot jump while crouched
 
 	; Play jumping sound
 	LDA #0
