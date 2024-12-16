@@ -100,18 +100,18 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 	STY	palette_idx ; Store the new index
 
 	LDX palette_idx ; Get the palette index into X
-	LDY #0 ; Store 0 in Y
+	LDY #0          ; Store 0 in Y
 	@paletteloop:
-        LDA palettes, x ; Loop through the next palette palette
-        STA palette, y         ; Index with Y
-        INX                    ; Increment x
-		INY 				   ; Increment Y
-        CPY #32                ; Check if we aren't at the end of the palette
-        BCC @paletteloop        ; Keeping copying over palette bytes if we aren't done yet
+        LDA palettes, x  ; Loop through the next palette colors
+        STA palette, y   ; Index with Y
+        INX              ; Increment x
+		INY 			 ; Increment Y
+        CPY #32          ; Check if we aren't at the end of the palette
+        BCC @paletteloop ; Keeping copying over palette bytes if we aren't done yet
 
-	; Play coin sound
+	; Play coin sound on channel 0
 	LDA #2
-    LDX #0 ; play on channel 0
+    LDX #0
     JSR play_sfx
 
 @skip_step:
