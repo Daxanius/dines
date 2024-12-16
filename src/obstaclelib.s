@@ -107,10 +107,7 @@ spotsUntilObstacle: .res 1
         BEQ @return      ; Stop looping if we hit an empty sprite
 
         JSR check_and_delete_segment ; Check and potentially delete a segment
-
-        LDA oam+1, x     ; Fetch the sprite tile index
-        CMP #0           ; Check if the sprite is "empty" / has tile 0
-        BEQ @return      ; Stop looping if we hit an empty sprite
+        LDX oam_idx     ; Load x at the start of the (last) OAM index
 
         PLA              ; Get the flap remainder from the stack
         CMP #1           ; Check if the remainder is 0
@@ -138,10 +135,8 @@ spotsUntilObstacle: .res 1
     @continue:
         ; Update the segment position
         LDA oam+3, x   ; Get the x position of the cactus
-        CLC
+        SEC            ; Set carry for subtraction
         SBC game_speed ; Subtract the game speed from the X position
-        CLC
-        ADC #1         ; Add 1 to position for subtraction wonkiness
         STA oam+3, x   ; Store a back into the OAM with the new position
 
         ; Increment the loop
@@ -154,10 +149,6 @@ spotsUntilObstacle: .res 1
         
     @return:
         PLA             ; Clean the remainder from the stack, it is no longer needed
-
-        LDA oam_idx
-        STA last_oam_idx
-        INC last_oam_idx ; One higher than the oam index
         RTS
 .endproc
 
@@ -190,10 +181,6 @@ spotsUntilObstacle: .res 1
 ; Deletes the segment at register x
 .proc check_and_delete_segment
     @start:
-        LDA oam+1, x    ; Get the tile of the cactus
-        CMP #0          ; If it is empty
-        BEQ @skip_position_check ; Skip the position check
-
         LDA oam+3, x    ; Get the x position of the cactus
         CLC
         SBC #2
@@ -207,13 +194,6 @@ spotsUntilObstacle: .res 1
         STA oam+1, x
         STA oam+2, x
         STA oam+3, x
-
-        TXA
-        CLC
-        SBC #2            ; Decrement it by 2 for a bug?
-        CMP last_oam_idx  ; Check if we are at the last element
-        ;BEQ skip         ; Skip if we are at the last element
-        BPL @end          ; Skip if we are above the last element
 
     @loop:
         ; Move the next sprite data back to the current slot
@@ -232,7 +212,7 @@ spotsUntilObstacle: .res 1
         INX
         INX
         CPX last_oam_idx   ; Have we reached the last element?
-        BMI @loop          ; If not, continue looping
+        BNE @loop          ; If not, continue looping
 
     ; Mark the last sprite slot as unused (optional cleanup)
     LDA #0
@@ -245,8 +225,6 @@ spotsUntilObstacle: .res 1
     LDX oam_idx
     JMP @start
 
-    @end:
-        DEC oam_idx
     @return:
         RTS
 .endproc

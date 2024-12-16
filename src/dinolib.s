@@ -46,6 +46,9 @@ dino_steps: .res 1 ; The amount of steps the dino has taken
 
 ; An update function updating the game loop
 .proc dino_update
+	LDA oam_idx      ; Fetch the oam index
+	STA last_oam_idx ; Store the result in the last oam index
+
 	LDA #0	         ; Zero to reset the OAM index
 	STA oam_idx      ; Reset the oam index, I'm pretty sure the PPU has something for this..
 
